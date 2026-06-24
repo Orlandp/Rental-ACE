@@ -3,11 +3,11 @@ import AmountCard from '../components/AmountCard';
 import TopBar from '../components/TopBar';
 
 function PayPage() {
-
+//apllication of usestate
   const [phone, setPhone]   = useState("");
   const [error, setError]   = useState("");
   const [paying, setPaying] = useState(false);
-
+// will changed once flask and sql 
   const houseId    = 3;
   const rentAmount = 18000;
   const balance    = 4000;
@@ -16,7 +16,7 @@ function PayPage() {
   function handlePayment() {
     const cleanPhone = phone.replace(/\s/g, '');
     const kenyanPhone = /^(07|01)\d{8}$/;
-
+//if statements
     if (!kenyanPhone.test(cleanPhone)) {
       setError('Please enter a valid Kenyan number e.g. 0712 345 678');
       return;
@@ -75,7 +75,7 @@ function PayPage() {
     </div>
   );
 }
-
+//css inline for the document
 const styles = {
   page: {
     maxWidth: '420px',
