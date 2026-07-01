@@ -1,7 +1,6 @@
 import React from 'react';
 
 function AmountCard({ rentAmount, balance, waterBill }) {
-
   const total = rentAmount + (balance || 0) + (waterBill || 0);
 
   return (
@@ -16,10 +15,7 @@ function AmountCard({ rentAmount, balance, waterBill }) {
 
       <div style={styles.col}>
         <p style={styles.label}>Balance</p>
-        <p style={{
-          ...styles.value,
-          color: balance > 0 ? '#c0392b' : '#1a1a1a'
-        }}>
+        <p style={{ ...styles.value, color: balance > 0 ? '#c0392b' : '#1a1a1a' }}>
           Ksh {(balance || 0).toLocaleString()}
         </p>
       </div>
@@ -46,26 +42,10 @@ const styles = {
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  col: {
-    flex: 1,
-    textAlign: 'center',
-  },
-  label: {
-    fontSize: '11px',
-    color: '#888',
-    margin: '0 0 4px',
-    textTransform: 'uppercase',
-  },
-  value: {
-    fontSize: '16px',
-    fontWeight: 600,
-    margin: 0,
-  },
-  divider: {
-    width: '1px',
-    height: '40px',
-    backgroundColor: '#e8e8e8',
-  },
+  col: { flex: 1, textAlign: 'center' },
+  label: { fontSize: '11px', color: '#888', margin: '0 0 4px', textTransform: 'uppercase' },
+  value: { fontSize: '16px', fontWeight: 600, margin: 0 },
+  divider: { width: '1px', height: '40px', backgroundColor: '#e8e8e8' },
 };
 
 export default AmountCard;
