@@ -129,6 +129,13 @@ function LoginPage() {
             Pay via QR code →
           </a>
         </div>
+        <div style={{ marginTop: '12px' }}>
+            <p style={styles.payText}>Don't have an account?</p>
+            <a href="/register" style={styles.payAnchor}>
+                 Register here →
+            </a>
+         </div>
+
 
       </div>
 

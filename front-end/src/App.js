@@ -2,6 +2,8 @@ import React from 'react';
 import PayPage from './pages/PayPage';
 import LoginPage from './pages/LoginPage';
 import TenantDashboard from './pages/tenant/Dashboard';
+import RegisterPage from './pages/RegisterPage';
+
 
 function App() {
   const path = window.location.pathname;
@@ -10,9 +12,8 @@ function App() {
   if (path === '/login') return <LoginPage />;
 
   if (path === '/tenant/dashboard') return <TenantDashboard />;
-  if (path === '/admin/dashboard')
-    return <div style={styles.placeholder}><h2>⚙️ Admin Dashboard — Day 7!</h2></div>;
 
+  if (path === '/register') return <RegisterPage />;
   if (path === '/landlord/dashboard')
     return <div style={styles.placeholder}><h2>🏗️ Landlord Dashboard — Day 11!</h2></div>;
 
