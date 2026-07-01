@@ -3,6 +3,8 @@ import PayPage from './pages/PayPage';
 import LoginPage from './pages/LoginPage';
 import TenantDashboard from './pages/tenant/Dashboard';
 import RegisterPage from './pages/RegisterPage';
+import LandlordDashboard from './pages/landlord/Dashboard';
+
 
 
 function App() {
@@ -14,8 +16,7 @@ function App() {
   if (path === '/tenant/dashboard') return <TenantDashboard />;
 
   if (path === '/register') return <RegisterPage />;
-  if (path === '/landlord/dashboard')
-    return <div style={styles.placeholder}><h2>🏗️ Landlord Dashboard — Day 11!</h2></div>;
+  if (path === '/landlord/dashboard') return <LandlordDashboard />;
 
   return (
     <div style={styles.placeholder}>
