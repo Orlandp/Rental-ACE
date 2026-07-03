@@ -8,26 +8,33 @@ const mockProperties = [
 ];
 
 function RegisterPage() {
-    const [step, setStep] = useState(1);
-    const [fullName, setFullName] = useState('');
-    const [phone, setPhone] = useState('');
-    const [idNumber, setIdNumber] = useState('');
-    const [password, setPassword] = useState('');
-    const [confirmPassword, setConfirmPassword] = useState('');
-    const [showPassword, setShowPassword] = useState(false);
-    const [role, setRole] = useState('');
-    const [property, setProperty] = useState('');
-    const [houseNumber, setHouseNumber] = useState('');
-    const [secretCode, setSecretCode] = useState('');
-    const [error, setError] = useState('');
-    const [loading, setLoading] = useState(false);
+    const [step, setStep]                           = useState(1);
+    const [fullName, setFullName]                   = useState('');
+    const [username, setUsername]                   = useState('');
+    const [phone, setPhone]                         = useState('');
+    const [idNumber, setIdNumber]                   = useState('');
+    const [password, setPassword]                   = useState('');
+    const [confirmPassword, setConfirmPassword]     = useState('');
+    const [showPassword, setShowPassword]           = useState(false);
+    const [role, setRole]                           = useState('');
+    const [property, setProperty]                   = useState('');
+    const [houseNumber, setHouseNumber]             = useState('');
+    const [secretCode, setSecretCode]               = useState('');
+    const [error, setError]                         = useState('');
+    const [loading, setLoading]                     = useState(false);
 
+    
    function handleRegister() {
 
     if (!fullName.trim()) {
       setError('Please enter your full name.');
       return;
     }
+
+    if (!username.trim()) {
+       setError('Please enter a username.');
+       return;
+   }
 
     const cleanPhone = phone.replace(/\s/g, '');
     const kenyanPhone = /^(07|01)\d{8}$/;
@@ -264,6 +271,16 @@ function RegisterPage() {
         {error !== '' && (
           <p style={styles.errorMsg}>{error}</p>
         )}
+        <div style={styles.fieldGroup}>
+         <p style={styles.fieldLabel}>Username</p>
+         <input
+             type="text"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            placeholder="e.g. james123"
+            style={styles.input}
+            />
+        </div>
 
         <button
           onClick={handleRegister}

@@ -1,29 +1,23 @@
 import React, { useState } from 'react';
 
 const mockUsers = [
-    { phone: '0712345678', id_number: '12345678', password: 'password232', role: 'tenant' },
-    { phone: '0723456789', id_number: '23456789', password: 'password232', role: 'admin' },
-    { phone: '0734567890', id_number: '34567890', password: 'password232', role: 'landlord' },
-]
+  { username: 'tenant1',   password: 'tenant123',   role: 'tenant'   },
+  { username: 'admin1',    password: 'admin123',    role: 'admin'    },
+  { username: 'landlord1', password: 'landlord123', role: 'landlord' },
+];
 
 function LoginPage() {
-    const [phone, setPhone] = useState('');
-    const [idNumber, setIdNumber] = useState('');
-    const [password, setPassword] = useState('');
-    const [showPassword, setShowPassword] = useState(false);
-    const [error, setError] =    useState('');
-    const [loading, setLoading] = useState(false);
 
+  const [username, setUsername]     = useState('');
+  const [password, setPassword]     = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError]           = useState('');
+  const [loading, setLoading]       = useState(false);
 
-    function handleLogin() {
+  function handleLogin() {
 
-    if (!phone.trim()) {
-      setError('Please enter your phone number.');
-      return;
-    }
-
-    if (!idNumber.trim()) {
-      setError('Please enter your ID number.');
+    if (!username.trim()) {
+      setError('Please enter your username.');
       return;
     }
 
@@ -37,32 +31,24 @@ function LoginPage() {
 
     setTimeout(() => {
       const user = mockUsers.find(
-        (u) =>
-          u.phone === phone &&
-          u.id_number === idNumber &&
-          u.password === password
+        (u) => u.username === username && u.password === password
       );
 
       if (!user) {
-        setError('Incorrect details. Please try again.');
+        setError('Incorrect username or password.');
         setLoading(false);
         return;
       }
 
-      if (user.role === 'tenant')
-        window.location.href = '/tenant/dashboard';
-
-      if (user.role === 'admin')
-        window.location.href = '/admin/dashboard';
-
-      if (user.role === 'landlord')
-        window.location.href = '/landlord/dashboard';
+      if (user.role === 'tenant')   window.location.href = '/tenant/dashboard';
+      if (user.role === 'admin')    window.location.href = '/admin/dashboard';
+      if (user.role === 'landlord') window.location.href = '/landlord/dashboard';
 
     }, 1500);
   }
-    return (
-    <div style={styles.page}>
 
+  return (
+    <div style={styles.page}>
       <div style={styles.card}>
 
         <div style={styles.logoCircle}>🏠</div>
@@ -70,24 +56,12 @@ function LoginPage() {
         <p style={styles.subtitle}>Ace Apartments · Eldoret</p>
 
         <div style={styles.fieldGroup}>
-          <p style={styles.fieldLabel}>Phone Number</p>
-          <input
-            type="tel"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="e.g. 0712 345 678"
-            maxLength={12}
-            style={styles.input}
-          />
-        </div>
-
-        <div style={styles.fieldGroup}>
-          <p style={styles.fieldLabel}>ID Number</p>
+          <p style={styles.fieldLabel}>Username</p>
           <input
             type="text"
-            value={idNumber}
-            onChange={(e) => setIdNumber(e.target.value)}
-            placeholder="e.g. 12345678"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            placeholder="Enter your username"
             style={styles.input}
           />
         </div>
@@ -123,22 +97,22 @@ function LoginPage() {
           {loading ? 'Logging in...' : 'Login'}
         </button>
 
-        <div style={styles.payLink}>
-          <p style={styles.payText}>Want to make a payment?</p>
-          <a href="/pay?property=1" style={styles.payAnchor}>
-            Pay via QR code →
-          </a>
-        </div>
-        <div style={{ marginTop: '12px' }}>
-            <p style={styles.payText}>Don't have an account?</p>
-            <a href="/register" style={styles.payAnchor}>
-                 Register here →
+        <div style={styles.bottomLinks}>
+          <div style={styles.linkGroup}>
+            <p style={styles.linkText}>Don't have an account?</p>
+            <a href="/register" style={styles.linkAnchor}>
+              Register here →
             </a>
-         </div>
-
+          </div>
+          <div style={styles.linkGroup}>
+            <p style={styles.linkText}>Want to make a payment?</p>
+            <a href="/pay?property=1" style={styles.linkAnchor}>
+              Pay via QR code →
+            </a>
+          </div>
+        </div>
 
       </div>
-
     </div>
   );
 }
@@ -215,7 +189,6 @@ const styles = {
     borderRadius: '10px',
     fontSize: '15px',
     boxSizing: 'border-box',
-    color: '#1a1a1a',
   },
   showBtn: {
     padding: '14px 16px',
@@ -225,7 +198,6 @@ const styles = {
     fontSize: '13px',
     cursor: 'pointer',
     color: '#555',
-    fontWeight: 500,
   },
   errorMsg: {
     color: '#c0392b',
@@ -245,17 +217,16 @@ const styles = {
     cursor: 'pointer',
     marginBottom: '20px',
   },
-  payLink: {
-    textAlign: 'center',
+  bottomLinks: {
     paddingTop: '16px',
     borderTop: '1px solid #f0f0f0',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px',
   },
-  payText: {
-    fontSize: '13px',
-    color: '#888',
-    margin: '0 0 6px',
-  },
-  payAnchor: {
+  linkGroup: { textAlign: 'center' },
+  linkText: { fontSize: '13px', color: '#888', margin: '0 0 4px' },
+  linkAnchor: {
     fontSize: '13px',
     color: '#1a7a4a',
     fontWeight: 600,
