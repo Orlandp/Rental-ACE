@@ -8,42 +8,35 @@ const mockUsers = [
 
 function LoginPage() {
 
-  const [username, setUsername]     = useState('');
-  const [password, setPassword]     = useState('');
+  const [username, setUsername]         = useState('');
+  const [password, setPassword]         = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError]           = useState('');
-  const [loading, setLoading]       = useState(false);
+  const [error, setError]               = useState('');
+  const [loading, setLoading]           = useState(false);
 
   function handleLogin() {
-
     if (!username.trim()) {
       setError('Please enter your username.');
       return;
     }
-
     if (!password.trim()) {
       setError('Please enter your password.');
       return;
     }
-
     setError('');
     setLoading(true);
-
     setTimeout(() => {
       const user = mockUsers.find(
         (u) => u.username === username && u.password === password
       );
-
       if (!user) {
         setError('Incorrect username or password.');
         setLoading(false);
         return;
       }
-
       if (user.role === 'tenant')   window.location.href = '/tenant/dashboard';
       if (user.role === 'admin')    window.location.href = '/admin/dashboard';
       if (user.role === 'landlord') window.location.href = '/landlord/dashboard';
-
     }, 1500);
   }
 
@@ -58,11 +51,18 @@ function LoginPage() {
         <div style={styles.fieldGroup}>
           <p style={styles.fieldLabel}>Username</p>
           <input
+            id="login-username"
             type="text"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                document.getElementById('login-password').focus();
+              }
+            }}
             placeholder="Enter your username"
             style={styles.input}
+            autoFocus
           />
         </div>
 
@@ -70,9 +70,13 @@ function LoginPage() {
           <p style={styles.fieldLabel}>Password</p>
           <div style={styles.passwordRow}>
             <input
+              id="login-password"
               type={showPassword ? 'text' : 'password'}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleLogin();
+              }}
               placeholder="Enter password"
               style={styles.passwordInput}
             />
@@ -100,15 +104,11 @@ function LoginPage() {
         <div style={styles.bottomLinks}>
           <div style={styles.linkGroup}>
             <p style={styles.linkText}>Don't have an account?</p>
-            <a href="/register" style={styles.linkAnchor}>
-              Register here →
-            </a>
+            <a href="/register" style={styles.linkAnchor}>Register here →</a>
           </div>
           <div style={styles.linkGroup}>
             <p style={styles.linkText}>Want to make a payment?</p>
-            <a href="/pay?property=1" style={styles.linkAnchor}>
-              Pay via QR code →
-            </a>
+            <a href="/pay?property=1" style={styles.linkAnchor}>Pay via QR code →</a>
           </div>
         </div>
 
@@ -130,43 +130,43 @@ const styles = {
   card: {
     background: 'white',
     borderRadius: '20px',
-    padding: '40px 28px',
+    padding: '48px 40px',
     width: '100%',
-    maxWidth: '380px',
-    boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+    maxWidth: '440px',
+    boxShadow: '0 4px 24px rgba(0,0,0,0.08)',
     textAlign: 'center',
   },
   logoCircle: {
-    width: '64px',
-    height: '64px',
+    width: '72px',
+    height: '72px',
     borderRadius: '50%',
     background: '#e8f5ee',
-    fontSize: '28px',
+    fontSize: '32px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    margin: '0 auto 20px',
+    margin: '0 auto 24px',
   },
   title: {
-    fontSize: '22px',
+    fontSize: '26px',
     fontWeight: 700,
-    margin: '0 0 6px',
+    margin: '0 0 8px',
     color: '#1a1a1a',
   },
   subtitle: {
-    fontSize: '13px',
+    fontSize: '14px',
     color: '#888',
-    margin: '0 0 28px',
+    margin: '0 0 32px',
   },
   fieldGroup: {
-    marginBottom: '16px',
+    marginBottom: '20px',
     textAlign: 'left',
   },
   fieldLabel: {
     fontSize: '13px',
     color: '#555',
-    margin: '0 0 6px',
-    fontWeight: 500,
+    margin: '0 0 8px',
+    fontWeight: 600,
   },
   input: {
     width: '100%',
@@ -176,10 +176,12 @@ const styles = {
     fontSize: '15px',
     boxSizing: 'border-box',
     color: '#1a1a1a',
+    outline: 'none',
+    transition: 'border-color 0.2s',
   },
   passwordRow: {
     display: 'flex',
-    gap: '8px',
+    gap: '10px',
     alignItems: 'center',
   },
   passwordInput: {
@@ -189,21 +191,26 @@ const styles = {
     borderRadius: '10px',
     fontSize: '15px',
     boxSizing: 'border-box',
+    outline: 'none',
   },
   showBtn: {
-    padding: '14px 16px',
+    padding: '14px 18px',
     background: '#f4f6f8',
     border: '1.5px solid #ddd',
     borderRadius: '10px',
     fontSize: '13px',
     cursor: 'pointer',
     color: '#555',
+    fontWeight: 500,
   },
   errorMsg: {
     color: '#c0392b',
     fontSize: '13px',
     margin: '0 0 16px',
     textAlign: 'center',
+    padding: '10px',
+    backgroundColor: '#fdecea',
+    borderRadius: '8px',
   },
   loginBtn: {
     width: '100%',
@@ -215,19 +222,20 @@ const styles = {
     fontSize: '16px',
     fontWeight: 600,
     cursor: 'pointer',
-    marginBottom: '20px',
+    marginBottom: '24px',
+    transition: 'background-color 0.2s',
   },
   bottomLinks: {
-    paddingTop: '16px',
+    paddingTop: '20px',
     borderTop: '1px solid #f0f0f0',
     display: 'flex',
     flexDirection: 'column',
-    gap: '12px',
+    gap: '14px',
   },
   linkGroup: { textAlign: 'center' },
   linkText: { fontSize: '13px', color: '#888', margin: '0 0 4px' },
   linkAnchor: {
-    fontSize: '13px',
+    fontSize: '14px',
     color: '#1a7a4a',
     fontWeight: 600,
     textDecoration: 'none',
