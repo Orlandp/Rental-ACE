@@ -4,6 +4,7 @@ import LoginPage from './pages/LoginPage';
 import TenantDashboard from './pages/tenant/Dashboard';
 import RegisterPage from './pages/RegisterPage';
 import LandlordDashboard from './pages/landlord/Dashboard';
+import AdminDashboard from './pages/admin/Dashboard';
 
 
 
@@ -17,6 +18,7 @@ function App() {
 
   if (path === '/register') return <RegisterPage />;
   if (path === '/landlord/dashboard') return <LandlordDashboard />;
+  if (path === '/admin/dashboard') return <AdminDashboard />;
 
   return (
     <div style={styles.placeholder}>

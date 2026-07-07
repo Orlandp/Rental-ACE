@@ -143,6 +143,16 @@ function RegisterPage() {
             style={styles.input}
           />
         </div>
+        <div style={styles.fieldGroup}>
+            <p style={styles.fieldLabel}>Username</p>
+              <input
+                   type="text"
+                   value={username}
+                   onChange={(e) => setUsername(e.target.value)}
+                   placeholder="e.g. james123"
+                   style={styles.input}
+                />
+        </div>
 
         <div style={styles.fieldGroup}>
           <p style={styles.fieldLabel}>Phone Number</p>
@@ -271,16 +281,7 @@ function RegisterPage() {
         {error !== '' && (
           <p style={styles.errorMsg}>{error}</p>
         )}
-        <div style={styles.fieldGroup}>
-         <p style={styles.fieldLabel}>Username</p>
-         <input
-             type="text"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            placeholder="e.g. james123"
-            style={styles.input}
-            />
-        </div>
+       
 
         <button
           onClick={handleRegister}
