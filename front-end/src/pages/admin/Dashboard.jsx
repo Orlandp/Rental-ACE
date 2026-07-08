@@ -1,413 +1,74 @@
 import React, { useState, useEffect } from 'react';
 
-const mockAdmin = {
-  name: 'James Orlando',
-  property: 'Ace Apartments',
-  location: 'Eldoret',
-};
+const mockAdmin = { name: 'James Orlando', property: 'Ace Apartments', location: 'Eldoret' };
 
 const mockUnits = [
-  {
-    id: 1,
-    number: 1,
-    tenant: 'James Orlando',
-    rent: 12000,
-    payment_type: 'paybill',
-    has_water: false,
-    water_bill: 0,
-    status: 'occupied',
-    payment_status: 'paid',
-  },
-  {
-    id: 2,
-    number: 2,
-    tenant: 'Sarah Akinyi',
-    rent: 15000,
-    payment_type: 'paybill',
-    has_water: false,
-    water_bill: 0,
-    status: 'occupied',
-    payment_status: 'unpaid',
-  },
-  {
-    id: 3,
-    number: 3,
-    tenant: 'Peter Otieno',
-    rent: 18000,
-    payment_type: 'paybill',
-    has_water: false,
-    water_bill: 0,
-    status: 'occupied',
-    payment_status: 'paid',
-  },
-  {
-    id: 4,
-    number: 4,
-    tenant: 'Mary Wanjiku',
-    rent: 20000,
-    payment_type: 'paybill',
-    has_water: false,
-    water_bill: 0,
-    status: 'occupied',
-    payment_status: 'paid',
-  },
-  {
-    id: 5,
-    number: 5,
-    tenant: 'David Mwangi',
-    rent: 22000,
-    payment_type: 'paybill',
-    has_water: false,
-    water_bill: 0,
-    status: 'occupied',
-    payment_status: 'unpaid',
-  },
-  {
-    id: 6,
-    number: 6,
-    tenant: 'Grace Njeri',
-    rent: 25000,
-    payment_type: 'paybill',
-    has_water: false,
-    water_bill: 0,
-    status: 'occupied',
-    payment_status: 'paid',
-  },
-  {
-    id: 7,
-    number: 7,
-    tenant: 'Paul Odhiambo',
-    rent: 28000,
-    payment_type: 'phone',
-    has_water: true,
-    water_bill: 1200,
-    status: 'occupied',
-    payment_status: 'paid',
-  },
-  {
-    id: 8,
-    number: 8,
-    tenant: 'Ann Chebet',
-    rent: 28000,
-    payment_type: 'phone',
-    has_water: true,
-    water_bill: 980,
-    status: 'occupied',
-    payment_status: 'unpaid',
-  },
-  {
-    id: 9,
-    number: 9,
-    tenant: 'Admin Unit',
-    rent: 28000,
-    payment_type: 'phone',
-    has_water: false,
-    water_bill: 0,
-    status: 'occupied',
-    payment_status: 'paid',
-  },
+  { id: 1, number: 1, tenant: 'James Orlando', rent: 12000, payment_type: 'paybill', has_water: false, water_bill: 0, status: 'occupied', payment_status: 'paid' },
+  { id: 2, number: 2, tenant: 'Sarah Akinyi', rent: 15000, payment_type: 'paybill', has_water: false, water_bill: 0, status: 'occupied', payment_status: 'unpaid' },
+  { id: 3, number: 3, tenant: 'Peter Otieno', rent: 18000, payment_type: 'paybill', has_water: false, water_bill: 0, status: 'occupied', payment_status: 'paid' },
+  { id: 4, number: 4, tenant: 'Mary Wanjiku', rent: 20000, payment_type: 'paybill', has_water: false, water_bill: 0, status: 'occupied', payment_status: 'paid' },
+  { id: 5, number: 5, tenant: 'David Mwangi', rent: 22000, payment_type: 'paybill', has_water: false, water_bill: 0, status: 'occupied', payment_status: 'unpaid' },
+  { id: 6, number: 6, tenant: 'Grace Njeri', rent: 25000, payment_type: 'paybill', has_water: false, water_bill: 0, status: 'occupied', payment_status: 'paid' },
+  { id: 7, number: 7, tenant: 'Paul Odhiambo', rent: 28000, payment_type: 'phone', has_water: true, water_bill: 1200, status: 'occupied', payment_status: 'paid' },
+  { id: 8, number: 8, tenant: 'Ann Chebet', rent: 28000, payment_type: 'phone', has_water: true, water_bill: 980, status: 'occupied', payment_status: 'unpaid' },
+  { id: 9, number: 9, tenant: 'Admin Unit', rent: 28000, payment_type: 'phone', has_water: false, water_bill: 0, status: 'occupied', payment_status: 'paid' },
 ];
 
 const mockTenants = [
-  {
-    id: 1,
-    name: 'James Orlando',
-    username: 'james1',
-    phone: '0712111001',
-    id_number: '11111111',
-    house: 1,
-    penalty_date: 5,
-    penalty_rate: 5.0,
-    status: 'active',
-    move_in: '1 Jan 2026',
-    move_out: null,
-  },
-  {
-    id: 2,
-    name: 'Sarah Akinyi',
-    username: 'sarah2',
-    phone: '0712111002',
-    id_number: '22222222',
-    house: 2,
-    penalty_date: 10,
-    penalty_rate: 8.0,
-    status: 'active',
-    move_in: '1 Jan 2026',
-    move_out: null,
-  },
-  {
-    id: 3,
-    name: 'Peter Otieno',
-    username: 'peter3',
-    phone: '0712111003',
-    id_number: '33333333',
-    house: 3,
-    penalty_date: 5,
-    penalty_rate: 5.0,
-    status: 'active',
-    move_in: '1 Feb 2026',
-    move_out: null,
-  },
-  {
-    id: 4,
-    name: 'Mary Wanjiku',
-    username: 'mary4',
-    phone: '0712111004',
-    id_number: '44444444',
-    house: 4,
-    penalty_date: 10,
-    penalty_rate: 8.0,
-    status: 'active',
-    move_in: '1 Feb 2026',
-    move_out: null,
-  },
-  {
-    id: 5,
-    name: 'David Mwangi',
-    username: 'david5',
-    phone: '0712111005',
-    id_number: '55555555',
-    house: 5,
-    penalty_date: 5,
-    penalty_rate: 5.0,
-    status: 'active',
-    move_in: '1 Mar 2026',
-    move_out: null,
-  },
-  {
-    id: 6,
-    name: 'Grace Njeri',
-    username: 'grace6',
-    phone: '0712111006',
-    id_number: '66666666',
-    house: 6,
-    penalty_date: 5,
-    penalty_rate: 5.0,
-    status: 'active',
-    move_in: '1 Mar 2026',
-    move_out: null,
-  },
-  {
-    id: 7,
-    name: 'Paul Odhiambo',
-    username: 'paul7',
-    phone: '0712111007',
-    id_number: '77777777',
-    house: 7,
-    penalty_date: 10,
-    penalty_rate: 8.0,
-    status: 'active',
-    move_in: '1 Apr 2026',
-    move_out: null,
-  },
-  {
-    id: 8,
-    name: 'Ann Chebet',
-    username: 'ann8',
-    phone: '0712111008',
-    id_number: '88888888',
-    house: 8,
-    penalty_date: 5,
-    penalty_rate: 5.0,
-    status: 'active',
-    move_in: '1 Apr 2026',
-    move_out: null,
-  },
-  {
-    id: 9,
-    name: 'Admin Unit',
-    username: 'admin9',
-    phone: '0712111009',
-    id_number: '99999999',
-    house: 9,
-    penalty_date: 5,
-    penalty_rate: 5.0,
-    status: 'active',
-    move_in: '1 Jan 2026',
-    move_out: null,
-  },
+  { id: 1, name: 'James Orlando', username: 'james1', phone: '0712111001', id_number: '11111111', house: 1, penalty_date: 5, penalty_rate: 5.0, status: 'active', move_in: '1 Jan 2026', move_out: null },
+  { id: 2, name: 'Sarah Akinyi', username: 'sarah2', phone: '0712111002', id_number: '22222222', house: 2, penalty_date: 10, penalty_rate: 8.0, status: 'active', move_in: '1 Jan 2026', move_out: null },
+  { id: 3, name: 'Peter Otieno', username: 'peter3', phone: '0712111003', id_number: '33333333', house: 3, penalty_date: 5, penalty_rate: 5.0, status: 'active', move_in: '1 Feb 2026', move_out: null },
+  { id: 4, name: 'Mary Wanjiku', username: 'mary4', phone: '0712111004', id_number: '44444444', house: 4, penalty_date: 10, penalty_rate: 8.0, status: 'active', move_in: '1 Feb 2026', move_out: null },
+  { id: 5, name: 'David Mwangi', username: 'david5', phone: '0712111005', id_number: '55555555', house: 5, penalty_date: 5, penalty_rate: 5.0, status: 'active', move_in: '1 Mar 2026', move_out: null },
+  { id: 6, name: 'Grace Njeri', username: 'grace6', phone: '0712111006', id_number: '66666666', house: 6, penalty_date: 5, penalty_rate: 5.0, status: 'active', move_in: '1 Mar 2026', move_out: null },
+  { id: 7, name: 'Paul Odhiambo', username: 'paul7', phone: '0712111007', id_number: '77777777', house: 7, penalty_date: 10, penalty_rate: 8.0, status: 'active', move_in: '1 Apr 2026', move_out: null },
+  { id: 8, name: 'Ann Chebet', username: 'ann8', phone: '0712111008', id_number: '88888888', house: 8, penalty_date: 5, penalty_rate: 5.0, status: 'active', move_in: '1 Apr 2026', move_out: null },
+  { id: 9, name: 'Admin Unit', username: 'admin9', phone: '0712111009', id_number: '99999999', house: 9, penalty_date: 5, penalty_rate: 5.0, status: 'active', move_in: '1 Jan 2026', move_out: null },
 ];
+
 const mockAllPayments = [
-  {
-    id: 1,
-    tenant: 'James Orlando',
-    house: 1,
-    amount: 12000,
-    date: '1 Jul 2026',
-    month: 'July 2026',
-    mpesa_code: 'QHX7234KLP',
-    status: 'paid',
-  },
-  {
-    id: 2,
-    tenant: 'Sarah Akinyi',
-    house: 2,
-    amount: 15000,
-    date: '1 Jul 2026',
-    month: 'July 2026',
-    mpesa_code: null,
-    status: 'unpaid',
-  },
-  {
-    id: 3,
-    tenant: 'Peter Otieno',
-    house: 3,
-    amount: 18000,
-    date: '1 Jul 2026',
-    month: 'July 2026',
-    mpesa_code: 'RKL8923MNP',
-    status: 'paid',
-  },
-  {
-    id: 4,
-    tenant: 'Mary Wanjiku',
-    house: 4,
-    amount: 20000,
-    date: '1 Jul 2026',
-    month: 'July 2026',
-    mpesa_code: 'PLM3421QRS',
-    status: 'paid',
-  },
-  {
-    id: 5,
-    tenant: 'David Mwangi',
-    house: 5,
-    amount: 22000,
-    date: '1 Jul 2026',
-    month: 'July 2026',
-    mpesa_code: null,
-    status: 'unpaid',
-  },
-  {
-    id: 6,
-    tenant: 'Grace Njeri',
-    house: 6,
-    amount: 25000,
-    date: '2 Jul 2026',
-    month: 'July 2026',
-    mpesa_code: 'NKJ9821WXY',
-    status: 'paid',
-  },
-  {
-    id: 7,
-    tenant: 'Paul Odhiambo',
-    house: 7,
-    amount: 29200,
-    date: '2 Jul 2026',
-    month: 'July 2026',
-    mpesa_code: 'MHG4532ABC',
-    status: 'paid',
-  },
-  {
-    id: 8,
-    tenant: 'Ann Chebet',
-    house: 8,
-    amount: 28980,
-    date: '2 Jul 2026',
-    month: 'July 2026',
-    mpesa_code: null,
-    status: 'unpaid',
-  },
-  {
-    id: 9,
-    tenant: 'James Orlando',
-    house: 1,
-    amount: 12000,
-    date: '1 Jun 2026',
-    month: 'June 2026',
-    mpesa_code: 'LKP2341DEF',
-    status: 'paid',
-  },
-  {
-    id: 10,
-    tenant: 'Sarah Akinyi',
-    house: 2,
-    amount: 15000,
-    date: '2 Jun 2026',
-    month: 'June 2026',
-    mpesa_code: 'JHG7654MNO',
-    status: 'paid',
-  },
+  { id: 1, tenant: 'James Orlando', house: 1, amount: 12000, date: '1 Jul 2026', month: 'July 2026', mpesa_code: 'QHX7234KLP', status: 'paid' },
+  { id: 2, tenant: 'Sarah Akinyi', house: 2, amount: 15000, date: '1 Jul 2026', month: 'July 2026', mpesa_code: null, status: 'unpaid' },
+  { id: 3, tenant: 'Peter Otieno', house: 3, amount: 18000, date: '1 Jul 2026', month: 'July 2026', mpesa_code: 'RKL8923MNP', status: 'paid' },
+  { id: 4, tenant: 'Mary Wanjiku', house: 4, amount: 20000, date: '1 Jul 2026', month: 'July 2026', mpesa_code: 'PLM3421QRS', status: 'paid' },
+  { id: 5, tenant: 'David Mwangi', house: 5, amount: 22000, date: '1 Jul 2026', month: 'July 2026', mpesa_code: null, status: 'unpaid' },
+  { id: 6, tenant: 'Grace Njeri', house: 6, amount: 25000, date: '2 Jul 2026', month: 'July 2026', mpesa_code: 'NKJ9821WXY', status: 'paid' },
+  { id: 7, tenant: 'Paul Odhiambo', house: 7, amount: 29200, date: '2 Jul 2026', month: 'July 2026', mpesa_code: 'MHG4532ABC', status: 'paid' },
+  { id: 8, tenant: 'Ann Chebet', house: 8, amount: 28980, date: '2 Jul 2026', month: 'July 2026', mpesa_code: null, status: 'unpaid' },
+  { id: 9, tenant: 'James Orlando', house: 1, amount: 12000, date: '1 Jun 2026', month: 'June 2026', mpesa_code: 'LKP2341DEF', status: 'paid' },
+  { id: 10, tenant: 'Sarah Akinyi', house: 2, amount: 15000, date: '2 Jun 2026', month: 'June 2026', mpesa_code: 'JHG7654MNO', status: 'paid' },
 ];
 
 const messageTemplates = {
-  reminder:
-    'Dear tenant, your rent is due on the 1st. Please pay via the QR code on your door.',
+  reminder: 'Dear tenant, your rent is due on the 1st. Please pay via the QR code on your door.',
   confirmed: 'Your payment has been received. Thank you.',
-  balance:
-    'You have an outstanding balance. Please clear it at your earliest convenience.',
+  balance: 'You have an outstanding balance. Please clear it at your earliest convenience.',
   custom: '',
 };
 
 const mockExpenses = [
-  {
-    id: 1,
-    category: 'Repairs',
-    description: 'Roof repair unit 3',
-    amount: 5000,
-    date: '1 Jul 2026',
-  },
-  {
-    id: 2,
-    category: 'Cleaning',
-    description: 'Common area cleaning',
-    amount: 2000,
-    date: '1 Jul 2026',
-  },
-  {
-    id: 3,
-    category: 'Security',
-    description: 'Guard salary July',
-    amount: 8000,
-    date: '1 Jul 2026',
-  },
+  { id: 1, category: 'Repairs', description: 'Roof repair unit 3', amount: 5000, date: '1 Jul 2026' },
+  { id: 2, category: 'Cleaning', description: 'Common area cleaning', amount: 2000, date: '1 Jul 2026' },
+  { id: 3, category: 'Security', description: 'Guard salary July', amount: 8000, date: '1 Jul 2026' },
 ];
 
 const mockPending = [
-  {
-    id: 1,
-    name: 'Tom Kipchoge',
-    phone: '0712111222',
-    house: 4,
-    date: '1 Jul 2026',
-  },
-  {
-    id: 2,
-    name: 'Faith Cherop',
-    phone: '0712333444',
-    house: 6,
-    date: '1 Jul 2026',
-  },
+  { id: 1, name: 'Tom Kipchoge', phone: '0712111222', house: 4, date: '1 Jul 2026' },
+  { id: 2, name: 'Faith Cherop', phone: '0712333444', house: 6, date: '1 Jul 2026' },
 ];
 
 const mockRecentPayments = [
-  {
-    id: 1,
-    tenant: 'James Orlando',
-    house: 1,
-    amount: 12000,
-    date: '1 Jul 2026',
-    status: 'paid',
-  },
-  {
-    id: 2,
-    tenant: 'Sarah Akinyi',
-    house: 2,
-    amount: 15000,
-    date: '1 Jul 2026',
-    status: 'unpaid',
-  },
-  {
-    id: 3,
-    tenant: 'Peter Otieno',
-    house: 3,
-    amount: 18000,
-    date: '1 Jul 2026',
-    status: 'paid',
-  },
+  { id: 1, tenant: 'James Orlando', house: 1, amount: 12000, date: '1 Jul 2026', status: 'paid' },
+  { id: 2, tenant: 'Sarah Akinyi', house: 2, amount: 15000, date: '1 Jul 2026', status: 'unpaid' },
+  { id: 3, tenant: 'Peter Otieno', house: 3, amount: 18000, date: '1 Jul 2026', status: 'paid' },
 ];
 
 function AdminDashboard() {
+  const [waterHistory, setWaterHistory] = useState([
+    { id: 1, month: 'july 2026', amount: 1200, house7: 1200, house8: 980 },
+    { id: 2, month: 'june 2026', amount: 1100, house7: 1100, house8: 900 },
+    { id: 3, month: 'may 2026', amount: 1000, house7: 1000, house8: 850 },
+  ]);
   const [recipient, setRecipient] = useState('');
   const [messageTemplate, setMessageTemplate] = useState('');
   const [messageText, setMessageText] = useState('');
@@ -415,6 +76,8 @@ function AdminDashboard() {
   const [expenses, setExpenses] = useState([]);
   const [newCategory, setNewCategory] = useState('');
   const [newDescription, setNewDescription] = useState('');
+  const [newWater7, setNewWater7] = useState('');
+  const [newWater8, setNewWater8] = useState('');
   const [newAmount, setNewAmount] = useState('');
   const [allPayments, setAllPayments] = useState([]);
   const [filterStatus, setFilterStatus] = useState('all');
@@ -700,6 +363,38 @@ function AdminDashboard() {
       `SMS sent to ${recipientName} successfully!\n\nIn backend phase this will use Africa's Talking API.`,
     );
   }
+  function handleSaveWaterBill(houseNumber, amount) {
+    if(!amount || parseInt(amount) < 1) {
+      alert('please enter a valid amount');
+      return;
+    }
+
+    setUnits(units.map(u =>
+    u.number === houseNumber
+      ? { ...u, water_bill: parseInt(amount) }
+      : u
+  ));
+  if(houseNumber === 7)setNewWater7('');
+  if(houseNumber === 8)setNewWater8('');
+   alert(`House ${houseNumber} water bill updated to Ksh ${parseInt(amount).toLocaleString()}!`);
+}
+function handleSaveMonthlyBills() {
+  const house7Bill = units.find( u => u.number === 7)?.water_bill || 0;
+  const house8Bill = units.find( u => u.number === 8)?.water_bill || 0;
+
+  const newRecord = {
+    id: Date.now(),
+    month: 'July 2026',
+    house7: house7Bill,
+    house8: house8Bill,
+  };
+
+  setWaterHistory([newRecord, ...waterHistory]);
+  alert('Water bills are saved for the History of July 2026');
+
+}
+    
+    
 
   function DashboardContent() {
     return (
@@ -1536,9 +1231,122 @@ function AdminDashboard() {
 
           {/* WATER BILLS */}
           {activePage === 'water' && (
-            <div style={styles.card}>
-              <p style={styles.cardTitle}>Water Bills</p>
-              <p style={styles.placeholderText}>Coming in Day 15!</p>
+            <div>
+              <div style={styles.card}>
+                <p style={styles.cardTitle}>Set water bills -July 2026</p>
+                <p style={{ fontSize:'12px', color:'#945', margin: '0,0,20px'}}>
+                  Set the water Bill for House 7 and House 8 before tenants pay this month
+                </p>
+
+                <div style={styles.waterCardsRow}>
+
+                  {(() =>{
+                    const unit7 = units.find( u => u.number ===7);
+                    const tenant7 = tenants.find(t => t.house === 7 && t.status === 'active');
+
+                    return(
+                      <div style ={styles.waterCard}>
+                        <div style ={styles.waterCardHeader}>
+                          <div style ={styles.unitBadge}>H7</div>
+                          <div>
+                            <p style = {styles.waterTenantName}>{tenant7?.name || 'no tenant'}</p>
+                            <p style ={styles.waterCurrentBill}>
+                              Current: Ksh {(unit7?.water_bill || 0).toLocaleString()}
+                            </p>
+                          </div>
+                        </div>
+                        <div style={styles.waterInputRow}>
+                          <input
+                            type='number'
+                            value={newWater7}
+                            onChange={(e) => setNewWater7(e.target.value)}
+                            placeholder='newAmount'
+                            style={styles.waterInput}
+                            min='2'
+                          />
+                          <button
+                            onClick={() => handleSaveWaterBill(7, newWater7)}
+                            style={styles.waterSaveBtn}
+                          >
+                            Save
+                          </button>
+                        </div>
+                      </div>
+                    );
+
+                  })()}
+                  {(() =>{
+                    const unit8 = units.find( u => u.number ===8);
+                    const tenant8 = tenants.find(t => t.house === 8 && t.status === 'active');
+
+                    return(
+                      <div style ={styles.waterCard}>
+                        <div style ={styles.waterCardHeader}>
+                          <div style ={styles.unitBadge}>H8</div>
+                          <div>
+                            <p style = {styles.waterTenantName}>{tenant8?.name || 'no tenant'}</p>
+                            <p style ={styles.waterCurrentBill}>
+                              Current: Ksh {(unit8?.water_bill || 0).toLocaleString()}
+                            </p>
+                          </div>
+                        </div>
+                        <div style={styles.waterInputRow}>
+                          <input
+                            type='number'
+                            value={newWater8}
+                            onChange={(e) => setNewWater8(e.target.value)}
+                            placeholder='newAmount'
+                            style={styles.waterInput}
+                            min='2'
+                          />
+                          <button
+                            onClick={() => handleSaveWaterBill(8, newWater8)}
+                            style={styles.waterSaveBtn}
+                          >
+                            Save
+                          </button>
+                        </div>
+                      </div>
+                    );
+
+                  })()}
+
+                  <button
+                    onClick={handleSaveMonthlyBills}
+                    style={styles.saveMonthBtn}
+                  >
+                    Save Monthly Bills
+                  </button>
+
+                  <div style={styles.card}>
+                    <p style={styles.cardTitle}>
+                       Water Bill History
+                    </p>
+                    <div style={styles.waterTableHeader}>
+                      <p style={{ ...styles.waterTableCell, fontWeight: 700 }}>Month</p>
+                      <p style={{ ...styles.waterTableCell, fontWeight: 700, textAlign: 'right' }}>House 7</p>
+                      <p style={{ ...styles.waterTableCell, fontWeight: 700, textAlign: 'right' }}>House 8</p>
+                      <p style={{ ...styles.waterTableCell, fontWeight: 700, textAlign: 'right' }}>Total</p>
+                    </div>
+
+                    {waterHistory.map ((record) =>(
+                      <div key={record.id} style={styles.waterTableRow}>
+                        <p style={styles.waterTableCell}>{record.month}</p>
+                        <p style={{...styles.waterTableCell, textAlign:'right', color:'#5635'}}>
+                          Ksh {record.house7.toLocaleString()}
+                        </p>
+                        <p style={{...styles.waterTableCell, textAlign:'right', color:'#5635'}}>
+                          Ksh {record.house8.toLocaleString()}
+                        </p>
+                        <p style={{...styles.waterTableCell, textAlign:'right', color:'#5635'}}>
+                          Ksh {(record.house7 + record.house8).toLocaleString()}
+                        </p>
+                      </div>
+                    ))}
+
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
@@ -2214,6 +2022,90 @@ const styles = {
     color: '#1a7a4a',
     whiteSpace: 'nowrap',
   },
+  waterCardsRow: {
+  display: 'flex',
+  gap: '20px',
+  flexWrap: 'wrap',
+  marginBottom: '24px',
+},
+waterCard: {
+  flex: 1,
+  minWidth: '200px',
+  backgroundColor: '#f8fafc',
+  borderRadius: '14px',
+  padding: '20px',
+  border: '1px solid #e8f4fd',
+},
+waterCardHeader: {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '12px',
+  marginBottom: '16px',
+},
+waterTenantName: {
+  fontSize: '15px',
+  fontWeight: 600,
+  margin: '0 0 4px',
+  color: '#1a1a1a',
+},
+waterCurrentBill: {
+  fontSize: '13px',
+  color: '#2980b9',
+  margin: 0,
+  fontWeight: 500,
+},
+waterInputRow: {
+  display: 'flex',
+  gap: '10px',
+  alignItems: 'center',
+},
+waterInput: {
+  flex: 1,
+  padding: '10px 14px',
+  border: '1.5px solid #ddd',
+  borderRadius: '8px',
+  fontSize: '14px',
+  outline: 'none',
+},
+waterSaveBtn: {
+  padding: '10px 18px',
+  backgroundColor: '#1a7a4a',
+  color: 'white',
+  border: 'none',
+  borderRadius: '8px',
+  fontSize: '13px',
+  fontWeight: 600,
+  cursor: 'pointer',
+},
+saveMonthBtn: {
+  width: '100%',
+  padding: '14px',
+  backgroundColor: '#2980b9',
+  color: 'white',
+  border: 'none',
+  borderRadius: '12px',
+  fontSize: '15px',
+  fontWeight: 600,
+  cursor: 'pointer',
+},
+waterTableHeader: {
+  display: 'flex',
+  padding: '10px 0',
+  borderBottom: '2px solid #f0f0f0',
+  marginBottom: '4px',
+},
+waterTableRow: {
+  display: 'flex',
+  padding: '12px 0',
+  borderBottom: '1px solid #f0f0f0',
+  alignItems: 'center',
+},
+waterTableCell: {
+  flex: 1,
+  fontSize: '14px',
+  color: '#555',
+  margin: 0,
+},
 };
 
 export default AdminDashboard;
