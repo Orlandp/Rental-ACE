@@ -2,26 +2,26 @@ import React, { useState, useEffect} from 'react';
 
 function SuccessPage() {
 
-     const params = new.URLsearchParams(window.location.search);
-     const house = params.get(house) || '';
-     const property = params.get(property) || '1';
-     const amount = params.get(amount) || '';
-     const mpesaCode = params.get(code) || 'pending confirmation';
+     const params = new URLSearchParams(window.location.search);
+     const house = params.get('house') || '';
+     const property = params.get('property') || '1';
+     const amount = params.get('amount') || '';
+     const mpesaCode = params.get('code') || 'pending confirmation';
      
-     const [countdown, setCountdown] = usestate(10);
+     const [countdown, setCountdown] = useState(10);
 
-     useEffect (() =>{ 
+     useEffect (() => { 
         const timer = setInterval(()=> {
             setCountdown ((prev) => {
                 if (prev <= 1){
                     clearInterval(timer);
-                    window.location.href = '/pay?property' = +  property;
+                    window.location.href = '/pay?property=' + property;
                     return 0;
                 }
                 return prev -1;
             });
      },1000);
-     return() => clearInterva(timer);
+     return () => clearInterval(timer);
      }, [property]);
 
      return (
@@ -33,7 +33,7 @@ function SuccessPage() {
                     Your payment has been confirmed
                 </p>
                 <div style={styles.detailCard}>
-                    {House && (
+                    {house && (
                         <div style={styles.detailRow}>
                             <p style={styles.detailLabel}>House</p>
                             <p style={styles.detailValue}>House{house}</p> 
@@ -70,7 +70,7 @@ function SuccessPage() {
                     Make Another Payment
                 </button>
                 <button
-                    onClick={() => window.location,href = '/login'}
+                    onClick={() => window.location.href = '/login'}
                     style={styles.loginBtn}
                 >
                     View Payment History.    
