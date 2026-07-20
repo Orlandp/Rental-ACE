@@ -1,11 +1,5 @@
 import React, { useState } from 'react';
 
-const mockUsers = [
-  { username: 'tenant1',   password: 'tenant123',   role: 'tenant'   },
-  { username: 'admin1',    password: 'admin123',    role: 'admin'    },
-  { username: 'landlord1', password: 'landlord123', role: 'landlord' },
-];
-
 function LoginPage() {
 
   const [username, setUsername]         = useState('');
@@ -14,7 +8,7 @@ function LoginPage() {
   const [error, setError]               = useState('');
   const [loading, setLoading]           = useState(false);
 
-  function handleLogin() {
+  async function handleLogin() {
     if (!username.trim()) {
       setError('Please enter your username.');
       return;
@@ -25,19 +19,32 @@ function LoginPage() {
     }
     setError('');
     setLoading(true);
-    setTimeout(() => {
-      const user = mockUsers.find(
-        (u) => u.username === username && u.password === password
-      );
-      if (!user) {
-        setError('Incorrect username or password.');
+
+    try {
+      const response = await fetch('http://127.0.0.1:5000/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ username: username.trim(), password: password.trim() }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error || 'Login failed. Please try again.');
         setLoading(false);
         return;
       }
-      if (user.role === 'tenant')   window.location.href = '/tenant/dashboard';
-      if (user.role === 'admin')    window.location.href = '/admin/dashboard';
-      if (user.role === 'landlord') window.location.href = '/landlord/dashboard';
-    }, 1500);
+
+      const role = data.user.role;
+      if (role === 'tenant')   window.location.href = '/tenant/dashboard';
+      if (role === 'admin')    window.location.href = '/admin/dashboard';
+      if (role === 'landlord') window.location.href = '/landlord/dashboard';
+
+    } catch (err) {
+      setError('Could not reach the server. Is Flask running?');
+      setLoading(false);
+    }
   }
 
   return (
