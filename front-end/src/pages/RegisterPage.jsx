@@ -1,11 +1,4 @@
-import React, { useState } from 'react';
-
-const ADMIN_SECRET    = 'admin20245';
-const LANDLORD_SECRET = 'landlord20245';
-
-const mockProperties = [
-  { id: 1, name: 'Ace Apartments', location: 'Eldoret' },
-];
+import React, { useState, useEffect } from 'react';
 
 function RegisterPage() {
 
@@ -18,18 +11,26 @@ function RegisterPage() {
   const [confirmPassword, setConfirmPassword]     = useState('');
   const [showPassword, setShowPassword]           = useState(false);
   const [role, setRole]                           = useState('');
+  const [properties, setProperties]               = useState([]);
   const [property, setProperty]                   = useState('');
   const [houseNumber, setHouseNumber]             = useState('');
   const [secretCode, setSecretCode]               = useState('');
   const [error, setError]                         = useState('');
   const [loading, setLoading]                     = useState(false);
 
+  useEffect(() => {
+    fetch('http://localhost:5000/api/properties')
+      .then(res => res.json())
+      .then(data => setProperties(data))
+      .catch(err => console.error('Could not load properties:', err));
+  }, []);
+
   function focusNext(id) {
     const el = document.getElementById(id);
     if (el) el.focus();
   }
 
-  function handleRegister() {
+  async function handleRegister() {
     if (!fullName.trim())    { setError('Please enter your full name.');         return; }
     if (!username.trim())    { setError('Please enter a username.');              return; }
     const cleanPhone = phone.replace(/\s/g, '');
@@ -43,11 +44,54 @@ function RegisterPage() {
       if (!property)    { setError('Please select your property.');   return; }
       if (!houseNumber) { setError('Please select your house number.'); return; }
     }
-    if (role === 'admin'    && secretCode !== ADMIN_SECRET)    { setError('Invalid admin code.');    return; }
-    if (role === 'landlord' && secretCode !== LANDLORD_SECRET) { setError('Invalid landlord code.'); return; }
+    if ((role === 'admin' || role === 'landlord') && !secretCode.trim()) {
+      setError(`Please enter the ${role} secret code.`);
+      return;
+    }
+
     setError('');
     setLoading(true);
-    setTimeout(() => { setLoading(false); setStep(2); }, 1500);
+
+    const payload = {
+      full_name: fullName.trim(),
+      username: username.trim(),
+      phone: cleanPhone,
+      id_number: idNumber.trim(),
+      password,
+      role,
+    };
+
+    if (role === 'admin' || role === 'landlord') {
+      payload.secret_code = secretCode.trim();
+    }
+
+    if (role === 'tenant') {
+      payload.unit_id = parseInt(houseNumber, 10);
+    }
+
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error || 'Registration failed. Please try again.');
+        setLoading(false);
+        return;
+      }
+
+      setLoading(false);
+      setStep(2);
+
+    } catch (err) {
+      setError('Could not reach the server. Is Flask running?');
+      setLoading(false);
+    }
   }
 
   if (step === 2) {
@@ -208,15 +252,15 @@ function RegisterPage() {
                 style={styles.select}
               >
                 <option value="">-- Select Property --</option>
-                {mockProperties.map((p) => (
-                  <option key={p.id} value={p.id}>
+                {properties.map((p) => (
+                  <option key={p.property_id} value={p.property_id}>
                     {p.name} · {p.location}
                   </option>
                 ))}
               </select>
             </div>
             <div style={styles.fieldGroup}>
-              <p style={styles.fieldLabel}>Select House Number</p>
+              <p style={styles.fieldLabel}>Select House Number (requested — admin will confirm)</p>
               <select
                 value={houseNumber}
                 onChange={(e) => setHouseNumber(e.target.value)}

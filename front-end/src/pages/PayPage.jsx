@@ -1,37 +1,8 @@
 import React, { useState, useEffect } from 'react';
 
-const mockProperties = {
-  1: {
-    property_id: 1,
-    name: 'Ace Apartments',
-    location: 'Eldoret',
-    paybill: '4567',
-    account_no: '9876543210',
-    phone_no_house7: '0722223432',
-    phone_no_house8: '0722223433',
-    phone_no_house9: '0722223434',
-  }
-};
-
-const mockUnits = {
-  1: { unit_id: 1, unit_number: 'House 1', rent_amount: 12000, penalty_date: 5,  penalty_rate: 5.0, has_water: false, payment_type: 'paybill', house_type: 'Two Bedroom'  },
-  2: { unit_id: 2, unit_number: 'House 2', rent_amount: 15000, penalty_date: 5,  penalty_rate: 5.0, has_water: false, payment_type: 'paybill', house_type: 'Two Bedroom'  },
-  3: { unit_id: 3, unit_number: 'House 3', rent_amount: 18000, penalty_date: 5,  penalty_rate: 5.0, has_water: false, payment_type: 'paybill', house_type: 'Two Bedroom'  },
-  4: { unit_id: 4, unit_number: 'House 4', rent_amount: 20000, penalty_date: 10, penalty_rate: 8.0, has_water: false, payment_type: 'paybill', house_type: 'Two Bedroom'  },
-  5: { unit_id: 5, unit_number: 'House 5', rent_amount: 22000, penalty_date: 10, penalty_rate: 8.0, has_water: false, payment_type: 'paybill', house_type: 'Two Bedroom'  },
-  6: { unit_id: 6, unit_number: 'House 6', rent_amount: 25000, penalty_date: 5,  penalty_rate: 5.0, has_water: false, payment_type: 'paybill', house_type: 'Two Bedroom'  },
-  7: { unit_id: 7, unit_number: 'House 7', rent_amount: 28000, penalty_date: 5,  penalty_rate: 5.0, has_water: true,  payment_type: 'phone',   house_type: 'One Bedroom'  },
-  8: { unit_id: 8, unit_number: 'House 8', rent_amount: 28000, penalty_date: 10, penalty_rate: 8.0, has_water: true,  payment_type: 'phone',   house_type: 'One Bedroom'  },
-  9: { unit_id: 9, unit_number: 'House 9', rent_amount: 28000, penalty_date: 5,  penalty_rate: 5.0, has_water: false, payment_type: 'phone',   house_type: 'Bedsitter'    },
-};
-
 function PayPage() {
 
-  const [property, setProperty]         = useState(null);
-  const [selectedUnit, setSelectedUnit] = useState('');
   const [unitData, setUnitData]         = useState(null);
-  const [tenantName, setTenantName]     = useState('');
-  const [amount, setAmount]             = useState('');
   const [phone, setPhone]               = useState('');
   const [loading, setLoading]           = useState(true);
   const [error, setError]               = useState('');
@@ -39,8 +10,8 @@ function PayPage() {
   const [paying, setPaying]             = useState(false);
   const [isDesktop, setIsDesktop]       = useState(window.innerWidth >= 768);
 
-  const params     = new URLSearchParams(window.location.search);
-  const propertyId = parseInt(params.get('property'));
+  const params = new URLSearchParams(window.location.search);
+  const unitId = parseInt(params.get('unit'));
 
   useEffect(() => {
     function handleResize() {
@@ -52,53 +23,30 @@ function PayPage() {
 
   useEffect(() => {
     async function loadData() {
-      if (!propertyId) {
-        setError('Invalid property. Please scan the QR code again.');
+      if (!unitId) {
+        setError('Invalid house. Please scan the QR code again.');
         setLoading(false);
         return;
       }
       try {
-        const propertyData = mockProperties[propertyId];
-        if (!propertyData) {
-          setError('Property not found. Please scan the QR code again.');
+        const res = await fetch(`http://localhost:5000/api/units/${unitId}/public`);
+        const data = await res.json();
+        if (!res.ok) {
+          setError(data.error || 'House not found. Please scan the QR code again.');
           setLoading(false);
           return;
         }
-        setProperty(propertyData);
+        setUnitData(data);
       } catch (err) {
-        setError('Could not load property. Please try again.');
+        setError('Could not reach the server. Is Flask running?');
       } finally {
         setLoading(false);
       }
     }
     loadData();
-  }, [propertyId]);
+  }, [unitId]);
 
-  function handleUnitChange(e) {
-    const unitId = parseInt(e.target.value);
-    setSelectedUnit(unitId);
-    setUnitData(mockUnits[unitId] || null);
-    setFormError('');
-  }
-
-  function focusNext(id) {
-    const el = document.getElementById(id);
-    if (el) el.focus();
-  }
-
-  function handlePayment() {
-    if (!selectedUnit) {
-      setFormError('Please select your house number.');
-      return;
-    }
-    if (!tenantName.trim()) {
-      setFormError('Please enter your full name.');
-      return;
-    }
-    if (!amount || isNaN(amount) || parseInt(amount) < 1) {
-      setFormError('Please enter a valid amount.');
-      return;
-    }
+ async function handlePayment() {
     const cleanPhone = phone.replace(/\s/g, '');
     const kenyanPhone = /^(07|01)\d{8}$/;
     if (!kenyanPhone.test(cleanPhone)) {
@@ -107,17 +55,36 @@ function PayPage() {
     }
     setFormError('');
     setPaying(true);
-    setTimeout(() => {
-      alert(
-        `Payment Details:\n\n` +
-        `Name:   ${tenantName}\n` +
-        `House:  ${selectedUnit}\n` +
-        `Amount: Ksh ${parseInt(amount).toLocaleString()}\n` +
-        `Phone:  ${phone}\n\n` +
-        `M-Pesa STK push coming in backend phase!`
-      );
+
+    try {
+      const res = await fetch('http://localhost:5000/api/payments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          unit_id: unitId,
+          phone_used: cleanPhone,
+        }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        setFormError(data.error || 'Payment failed. Please try again.');
+        setPaying(false);
+        return;
+      }
+
+      window.location.href =
+        `/success?receipt=${data.receipt.receipt_no}` +
+        `&unit=${data.receipt.unit_number}` +
+        `&tenant=${encodeURIComponent(data.receipt.tenant_name)}` +
+        `&amount=${data.receipt.amount_paid}` +
+        `&mpesa=${data.receipt.mpesa_code}` +
+        `&month=${encodeURIComponent(data.receipt.month)}`;
+
+    } catch (err) {
+      setFormError('Could not reach the server. Is Flask running?');
       setPaying(false);
-    }, 1500);
+    }
   }
 
   if (loading) {
@@ -136,7 +103,7 @@ function PayPage() {
     );
   }
 
-  return (
+return (
     <div style={isDesktop ? styles.pageDesktop : styles.pageMobile}>
 
       <div style={isDesktop ? styles.innerDesktop : {}}>
@@ -144,78 +111,23 @@ function PayPage() {
         {/* Header */}
         <div style={styles.header}>
           <p style={styles.headerLabel}>Property</p>
-          <h1 style={styles.headerName}>{property.name}</h1>
-          <p style={styles.headerLocation}>{property.location}</p>
+          <h1 style={styles.headerName}>{unitData.property_name}</h1>
+          <p style={styles.headerLocation}>House {unitData.unit_number}</p>
         </div>
 
         {/* Card */}
         <div style={isDesktop ? styles.cardDesktop : styles.cardMobile}>
 
-          {/* House Selector */}
-          <div style={styles.fieldGroup}>
-            <p style={styles.fieldLabel}>Select Your House Number</p>
-            <select
-              value={selectedUnit}
-              onChange={handleUnitChange}
-              style={styles.select}
-            >
-              <option value="">-- Select House --</option>
-              {[1,2,3,4,5,6,7,8,9].map((num) => (
-                <option key={num} value={num}>
-                  House {num} — {mockUnits[num]?.house_type}
-                </option>
-              ))}
-            </select>
-          </div>
-
           {/* Account Badge */}
-          {unitData && (
-            <div style={styles.accountBadge}>
-              ✓ Payment secured · {property.name}
-            </div>
-          )}
-
-          {/* Penalty Badge */}
-          {unitData && (
-            <div style={styles.penaltyBadge}>
-              ⚠ Late penalty after {unitData.penalty_date}th
-              ({unitData.penalty_rate}% of amount)
-            </div>
-          )}
+          <div style={styles.accountBadge}>
+            ✓ Payment secured · {unitData.property_name}
+            {unitData.payment_type === 'paybill' && (
+              <> · Paybill {unitData.paybill_no} · Acc {unitData.account_no}</>
+            )}
+          </div>
 
           {/* Desktop — two column layout for inputs */}
           <div style={isDesktop ? styles.twoCol : {}}>
-
-            <div style={isDesktop ? styles.col : {}}>
-              {/* Full Name */}
-              <div style={styles.fieldGroup}>
-                <p style={styles.fieldLabel}>Your Full Name</p>
-                <input
-                  id="pay-name"
-                  type="text"
-                  value={tenantName}
-                  onChange={(e) => setTenantName(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') focusNext('pay-amount'); }}
-                  placeholder="e.g. James Orlando"
-                  style={styles.input}
-                />
-              </div>
-
-              {/* Amount */}
-              <div style={styles.fieldGroup}>
-                <p style={styles.fieldLabel}>Amount to Pay (Ksh)</p>
-                <input
-                  id="pay-amount"
-                  type="number"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') focusNext('pay-phone'); }}
-                  placeholder="e.g. 18000"
-                  style={styles.input}
-                  min="1"
-                />
-              </div>
-            </div>
 
             <div style={isDesktop ? styles.col : {}}>
               {/* Phone */}

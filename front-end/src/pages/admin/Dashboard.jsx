@@ -52,11 +52,6 @@ const mockExpenses = [
   { id: 3, category: 'Security', description: 'Guard salary July', amount: 8000, date: '1 Jul 2026' },
 ];
 
-const mockPending = [
-  { id: 1, name: 'Tom Kipchoge', phone: '0712111222', house: 4, date: '1 Jul 2026' },
-  { id: 2, name: 'Faith Cherop', phone: '0712333444', house: 6, date: '1 Jul 2026' },
-];
-
 const mockRecentPayments = [
   { id: 1, tenant: 'James Orlando', house: 1, amount: 12000, date: '1 Jul 2026', status: 'paid' },
   { id: 2, tenant: 'Sarah Akinyi', house: 2, amount: 15000, date: '1 Jul 2026', status: 'unpaid' },
@@ -108,6 +103,19 @@ function AdminDashboard() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // ---- NEW: real fetch for pending tenants ----
+  async function loadPending() {
+    try {
+      const res = await fetch('http://localhost:5000/api/tenants/pending', {
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (res.ok) setPending(data);
+    } catch (err) {
+      console.error('Could not load pending tenants:', err);
+    }
+  }
+
   useEffect(() => {
     async function loadData() {
       try {
@@ -115,7 +123,7 @@ function AdminDashboard() {
         setUnits(mockUnits);
         setExpenses(mockExpenses);
         setTenants(mockTenants);
-        setPending(mockPending);
+        await loadPending();               // <-- CHANGED from setPending(mockPending)
         setPayments(mockRecentPayments);
         setAllPayments(mockAllPayments);
       } catch (err) {
@@ -151,14 +159,46 @@ function AdminDashboard() {
     window.location.href = '/login';
   }
 
-  function handleApprove(id) {
-    setPending(pending.filter((p) => p.id !== id));
-    alert('Tenant approved!');
+  // ---- CHANGED: real approve/reject ----
+  async function handleApprove(userId, unitId) {
+    try {
+      const res = await fetch(`http://localhost:5000/api/tenants/${userId}/approve`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ unit_id: unitId }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Could not approve tenant.');
+        return;
+      }
+      await loadPending();
+      alert('Tenant approved!');
+    } catch (err) {
+      alert('Could not reach the server.');
+    }
   }
 
-  function handleReject(id) {
-    setPending(pending.filter((p) => p.id !== id));
-    alert('Tenant rejected!');
+  async function handleReject(userId) {
+    const confirmed = window.confirm('Reject and remove this applicant?');
+    if (!confirmed) return;
+
+    try {
+      const res = await fetch(`http://localhost:5000/api/tenants/${userId}/reject`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Could not reject tenant.');
+        return;
+      }
+      await loadPending();
+      alert('Applicant rejected.');
+    } catch (err) {
+      alert('Could not reach the server.');
+    }
   }
 
   function getPaymentColor(status) {
@@ -393,8 +433,8 @@ function handleSaveMonthlyBills() {
   alert('Water bills are saved for the History of July 2026');
 
 }
-    
-    
+
+
 
   function DashboardContent() {
     return (
@@ -478,29 +518,30 @@ function handleSaveMonthlyBills() {
             ))}
           </div>
 
+          {/* ---- CHANGED: pending list now uses real field names ---- */}
           {pendingCount > 0 && (
             <div style={{ ...styles.card, flex: 1 }}>
               <p style={styles.cardTitle}>Pending ({pendingCount})</p>
               {pending.map((tenant) => (
-                <div key={tenant.id} style={styles.pendingRow}>
+                <div key={tenant.user_id} style={styles.pendingRow}>
                   <div>
-                    <p style={styles.pendingName}>{tenant.name}</p>
+                    <p style={styles.pendingName}>{tenant.full_name}</p>
                     <p style={styles.pendingDetails}>
-                      House {tenant.house} · {tenant.phone}
+                      Requested House {tenant.unit_id || '—'} · {tenant.phone}
                     </p>
                     <p style={{ fontSize: '11px', color: '#888', margin: 0 }}>
-                      {tenant.date}
+                      {tenant.created_at}
                     </p>
                   </div>
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <button
-                      onClick={() => handleApprove(tenant.id)}
+                      onClick={() => handleApprove(tenant.user_id, tenant.unit_id)}
                       style={styles.approveBtn}
                     >
                       Approve
                     </button>
                     <button
-                      onClick={() => handleReject(tenant.id)}
+                      onClick={() => handleReject(tenant.user_id)}
                       style={styles.rejectBtn}
                     >
                       Reject
