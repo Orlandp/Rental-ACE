@@ -6,7 +6,6 @@ properties_bp = Blueprint('properties', __name__)
 
 
 @properties_bp.route('/api/properties', methods=['GET'])
-@login_required
 def get_properties():
     conn = get_db()
     properties = conn.execute('SELECT * FROM properties').fetchall()

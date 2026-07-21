@@ -68,3 +68,21 @@ def update_unit(unit_id):
     conn.close()
 
     return jsonify({'message': 'Unit updated successfully'}), 200
+
+@units_bp.route('/api/units/<int:unit_id>/public', methods=['GET'])
+def get_unit_public(unit_id):
+    conn = get_db()
+    unit = conn.execute('''
+        SELECT u.unit_id, u.unit_number, u.rent_amount, u.payment_type,
+               u.phone_no, u.has_water_bill, u.water_bill, u.property_id,
+               p.name AS property_name, p.paybill_no, p.account_no
+        FROM units u
+        JOIN properties p ON u.property_id = p.property_id
+        WHERE u.unit_id = ?
+    ''', (unit_id,)).fetchone()
+    conn.close()
+
+    if not unit:
+        return jsonify({'error': 'Unit not found'}), 404
+
+    return jsonify(dict(unit)), 200
