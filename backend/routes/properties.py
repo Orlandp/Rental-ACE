@@ -103,3 +103,26 @@ def add_unit(property_id):
         'message': 'Unit added successfully',
         'unit_id': new_unit_id
     }), 201
+@properties_bp.route('/api/properties/<int:property_id>', methods=['DELETE'])
+@role_required('admin', 'landlord')
+def delete_property(property_id):
+    conn = get_db()
+
+    prop = conn.execute('SELECT * FROM properties WHERE property_id = ?', (property_id,)).fetchone()
+    if not prop:
+        conn.close()
+        return jsonify({'error': 'Property not found'}), 404
+
+    unit_count = conn.execute(
+        'SELECT COUNT(*) FROM units WHERE property_id = ?', (property_id,)
+    ).fetchone()[0]
+
+    if unit_count > 0:
+        conn.close()
+        return jsonify({'error': f'Cannot delete: this property still has {unit_count} unit(s). Remove all units first.'}), 400
+
+    conn.execute('DELETE FROM properties WHERE property_id = ?', (property_id,))
+    conn.commit()
+    conn.close()
+
+    return jsonify({'message': 'Property deleted successfully'}), 200

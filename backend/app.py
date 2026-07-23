@@ -8,6 +8,7 @@ from routes.payments import payments_bp
 from routes.expenses import expenses_bp
 from routes.messages import messages_bp
 from routes.water_bills import water_bills_bp
+from routes.reports import reports_bp
 
 app = Flask(__name__)
 app.secret_key = 'change this to something later'
@@ -21,6 +22,7 @@ app.register_blueprint(payments_bp)
 app.register_blueprint(expenses_bp)
 app.register_blueprint(messages_bp)
 app.register_blueprint(water_bills_bp)
+app.register_blueprint(reports_bp)
 
 
 @app.route('/api/health')

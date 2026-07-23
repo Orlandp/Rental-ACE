@@ -1,6 +1,7 @@
 from flask import Blueprint, request, session, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 from database import get_db
+from routes.decorators import login_required
 
 
 auth_bp = Blueprint('auth', __name__)
@@ -94,3 +95,17 @@ def login():
             'role': user['role'],
         }
     }), 200
+@auth_bp.route('/api/auth/me', methods=['GET'])
+@login_required
+def me():
+    conn = get_db()
+    user = conn.execute(
+        'SELECT user_id, full_name, username, role, unit_id FROM users WHERE user_id = ?',
+        (session['user_id'],)
+    ).fetchone()
+    conn.close()
+
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
+    return jsonify(dict(user)), 200

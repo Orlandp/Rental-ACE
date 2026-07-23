@@ -86,3 +86,27 @@ def get_unit_public(unit_id):
         return jsonify({'error': 'Unit not found'}), 404
 
     return jsonify(dict(unit)), 200
+@units_bp.route('/api/units/<int:unit_id>', methods=['DELETE'])
+@role_required('admin', 'landlord')
+def delete_unit(unit_id):
+    conn = get_db()
+
+    unit = conn.execute('SELECT * FROM units WHERE unit_id = ?', (unit_id,)).fetchone()
+    if not unit:
+        conn.close()
+        return jsonify({'error': 'Unit not found'}), 404
+
+    active_tenant = conn.execute(
+        "SELECT * FROM users WHERE unit_id = ? AND role = 'tenant' AND status = 'active'",
+        (unit_id,)
+    ).fetchone()
+
+    if active_tenant:
+        conn.close()
+        return jsonify({'error': f"Cannot delete: {active_tenant['full_name']} is still an active tenant in this unit"}), 400
+
+    conn.execute('DELETE FROM units WHERE unit_id = ?', (unit_id,))
+    conn.commit()
+    conn.close()
+
+    return jsonify({'message': 'Unit deleted successfully'}), 200
