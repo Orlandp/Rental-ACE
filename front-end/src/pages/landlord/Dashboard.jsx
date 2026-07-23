@@ -1,69 +1,22 @@
 import React, { useState, useEffect } from 'react';
 
-const mockLandlord = {
-  name: 'Chris Nyaware',
-  property: 'Ace Apartments',
-  location: 'Eldoret',
-};
-
-const mockUnits = [
-  { id: 1, number: 1, tenant: 'James Orlando', rent: 12000, status: 'occupied' },
-  { id: 2, number: 2, tenant: 'Sarah Akinyi',  rent: 15000, status: 'occupied' },
-  { id: 3, number: 3, tenant: 'Peter Otieno',  rent: 18000, status: 'occupied' },
-  { id: 4, number: 4, tenant: 'Mary Wanjiku',  rent: 20000, status: 'occupied' },
-  { id: 5, number: 5, tenant: 'David Mwangi',  rent: 22000, status: 'occupied' },
-  { id: 6, number: 6, tenant: 'Grace Njeri',   rent: 25000, status: 'occupied' },
-  { id: 7, number: 7, tenant: 'Paul Odhiambo', rent: 28000, status: 'occupied' },
-  { id: 8, number: 8, tenant: 'Ann Chebet',    rent: 28000, status: 'occupied' },
-  { id: 9, number: 9, tenant: 'Admin Unit',    rent: 28000, status: 'occupied' },
+const MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
 ];
-
-const mockPaymentsByMonth = {
-  'July 2026': [
-    { unit: 1, amount: 12000, status: 'paid'   },
-    { unit: 2, amount: 15000, status: 'unpaid' },
-    { unit: 3, amount: 18000, status: 'paid'   },
-    { unit: 4, amount: 20000, status: 'paid'   },
-    { unit: 5, amount: 22000, status: 'unpaid' },
-    { unit: 6, amount: 25000, status: 'paid'   },
-    { unit: 7, amount: 28000, status: 'paid'   },
-    { unit: 8, amount: 28000, status: 'unpaid' },
-    { unit: 9, amount: 28000, status: 'paid'   },
-  ],
-  'June 2026': [
-    { unit: 1, amount: 12000, status: 'paid'   },
-    { unit: 2, amount: 15000, status: 'paid'   },
-    { unit: 3, amount: 18000, status: 'paid'   },
-    { unit: 4, amount: 20000, status: 'paid'   },
-    { unit: 5, amount: 22000, status: 'paid'   },
-    { unit: 6, amount: 25000, status: 'paid'   },
-    { unit: 7, amount: 28000, status: 'paid'   },
-    { unit: 8, amount: 28000, status: 'unpaid' },
-    { unit: 9, amount: 28000, status: 'paid'   },
-  ],
-};
-
-const mockExpensesByMonth = {
-  'July 2026': [
-    { category: 'Repairs',  amount: 5000, description: 'Roof repair unit 3' },
-    { category: 'Cleaning', amount: 2000, description: 'Common area'        },
-    { category: 'Security', amount: 8000, description: 'Guard salary'       },
-  ],
-  'June 2026': [
-    { category: 'Utilities', amount: 3000, description: 'Electricity bill'  },
-    { category: 'Security',  amount: 8000, description: 'Guard salary'      },
-  ],
-};
-
-const availableMonths = ['July 2026', 'June 2026'];
 
 function LandlordDashboard() {
 
   const [landlord, setLandlord]         = useState(null);
+  const [units, setUnits]               = useState([]);
+  const [tenants, setTenants]           = useState([]);
+  const [allPayments, setAllPayments]   = useState([]);
+  const [allExpenses, setAllExpenses]   = useState([]);
   const [loading, setLoading]           = useState(true);
   const [error, setError]               = useState('');
   const [activePage, setActivePage]     = useState('dashboard');
-  const [selectedMonth, setSelectedMonth] = useState('July 2026');
+  const now = new Date();
+  const [selectedMonth, setSelectedMonth] = useState(`${MONTH_NAMES[now.getMonth()]} ${now.getFullYear()}`);
   const [isDesktop, setIsDesktop]       = useState(window.innerWidth >= 768);
 
   useEffect(() => {
@@ -77,7 +30,25 @@ function LandlordDashboard() {
   useEffect(() => {
     async function loadData() {
       try {
-        setLandlord(mockLandlord);
+        const meRes = await fetch('http://localhost:5000/api/auth/me', { credentials: 'include' });
+        const me = await meRes.json();
+        if (meRes.ok) setLandlord(me);
+
+        const unitsRes = await fetch('http://localhost:5000/api/units', { credentials: 'include' });
+        const unitsData = await unitsRes.json();
+        if (unitsRes.ok) setUnits(unitsData);
+
+        const tenantsRes = await fetch('http://localhost:5000/api/tenants', { credentials: 'include' });
+        const tenantsData = await tenantsRes.json();
+        if (tenantsRes.ok) setTenants(tenantsData);
+
+        const paymentsRes = await fetch('http://localhost:5000/api/payments', { credentials: 'include' });
+        const paymentsData = await paymentsRes.json();
+        if (paymentsRes.ok) setAllPayments(paymentsData);
+
+        const expensesRes = await fetch('http://localhost:5000/api/expenses', { credentials: 'include' });
+        const expensesData = await expensesRes.json();
+        if (expensesRes.ok) setAllExpenses(expensesData);
       } catch (err) {
         setError('Could not load dashboard.');
       } finally {
@@ -87,18 +58,25 @@ function LandlordDashboard() {
     loadData();
   }, []);
 
-  const monthPayments = mockPaymentsByMonth[selectedMonth] || [];
-  const monthExpenses = mockExpensesByMonth[selectedMonth] || [];
+  const availableMonths = [...new Set(allPayments.map((p) => p.month))];
+  if (!availableMonths.includes(selectedMonth)) availableMonths.unshift(selectedMonth);
 
-  const expectedIncome  = mockUnits.reduce((sum, u) => sum + u.rent, 0);
+  const monthPayments = allPayments.filter((p) => p.month === selectedMonth);
+  const monthExpenses = allExpenses.filter((e) => {
+    const parts = selectedMonth.split(' ');
+    const year = parts[parts.length - 1];
+    return e.expense_date && e.expense_date.startsWith(year);
+  });
+
+  const expectedIncome  = units.reduce((sum, u) => sum + u.rent_amount, 0);
   const collectedIncome = monthPayments.filter(p => p.status === 'paid').reduce((sum, p) => sum + p.amount, 0);
   const outstanding     = expectedIncome - collectedIncome;
   const totalExpenses   = monthExpenses.reduce((sum, e) => sum + e.amount, 0);
   const netIncome       = collectedIncome - totalExpenses;
 
-  const totalUnits     = mockUnits.length;
-  const occupiedUnits  = mockUnits.filter(u => u.status === 'occupied').length;
-  const availableUnits = mockUnits.filter(u => u.status === 'available').length;
+  const totalUnits     = units.length;
+  const occupiedUnits  = units.filter(u => (u.status || '').toUpperCase() === 'OCCUPIED').length;
+  const availableUnits = units.filter(u => (u.status || '').toUpperCase() === 'AVAILABLE').length;
 
   function getCategoryStyle(category) {
     if (category === 'Repairs')   return { bg: '#fdecea', color: '#c0392b' };
@@ -110,12 +88,53 @@ function LandlordDashboard() {
 
   function handleLogout() { window.location.href = '/login'; }
 
-  function handleDownloadPDF() {
-    alert('PDF generation coming in backend phase!\n\nFlask will use ReportLab to generate a PDF with income charts and payment tables.');
+  function parseMonthYear(monthYearStr) {
+    const parts = monthYearStr.split(' ');
+    return { month: parts[0], year: parts[1] };
   }
 
-  function handleDownloadExcel() {
-    alert('Excel generation coming in backend phase!\n\nFlask will use openpyxl to generate a detailed spreadsheet.');
+  async function handleDownloadPDF() {
+    const { month, year } = parseMonthYear(selectedMonth);
+    try {
+      const res = await fetch(`http://localhost:5000/api/reports/pdf?month=${month}&year=${year}`, {
+        credentials: 'include',
+      });
+      if (!res.ok) {
+        alert('Could not generate PDF report.');
+        return;
+      }
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `rental-ace-report-${month}-${year}.pdf`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      alert('Could not reach the server.');
+    }
+  }
+
+  async function handleDownloadExcel() {
+    const { month, year } = parseMonthYear(selectedMonth);
+    try {
+      const res = await fetch(`http://localhost:5000/api/reports/excel?month=${month}&year=${year}`, {
+        credentials: 'include',
+      });
+      if (!res.ok) {
+        alert('Could not generate Excel report.');
+        return;
+      }
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `rental-ace-report-${month}-${year}.xlsx`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      alert('Could not reach the server.');
+    }
   }
 
   if (loading) return <div style={styles.centered}><p>Loading...</p></div>;
@@ -129,8 +148,8 @@ function LandlordDashboard() {
         <div style={styles.headerTop}>
           <div>
             <p style={styles.headerLabel}>Landlord</p>
-            <h2 style={styles.headerName}>{landlord.name}</h2>
-            <p style={styles.headerSub}>{landlord.property} · {landlord.location}</p>
+            <h2 style={styles.headerName}>{landlord?.full_name}</h2>
+            <p style={styles.headerSub}>Ace Apartments · Eldoret</p>
           </div>
           <button onClick={handleLogout} style={styles.logoutBtn}>Logout</button>
         </div>
@@ -167,7 +186,7 @@ function LandlordDashboard() {
                 { label: 'Total Units',  value: totalUnits    },
                 { label: 'Occupied',     value: occupiedUnits  },
                 { label: 'Available',    value: availableUnits },
-                { label: 'Income (Jul)', value: `${(collectedIncome/1000).toFixed(0)}K` },
+                { label: `Income (${selectedMonth.split(' ')[0]})`, value: `${(collectedIncome/1000).toFixed(0)}K` },
               ].map((card) => (
                 <div key={card.label} style={styles.summaryCard}>
                   <p style={styles.summaryValue}>{card.value}</p>
@@ -178,15 +197,16 @@ function LandlordDashboard() {
 
             <div style={styles.card}>
               <p style={styles.cardTitle}>Units Overview</p>
-              {mockUnits.map((unit) => {
-                const payment = (mockPaymentsByMonth['July 2026'] || []).find(p => p.unit === unit.number);
+              {units.map((unit) => {
+                const occupant = tenants.find((t) => t.unit_id === unit.unit_id && t.status === 'active');
+                const payment = allPayments.find((p) => p.unit_number === unit.unit_number && p.month === selectedMonth);
                 return (
-                  <div key={unit.id} style={styles.unitRow}>
+                  <div key={unit.unit_id} style={styles.unitRow}>
                     <div style={styles.unitLeft}>
-                      <div style={styles.unitBadge}>H{unit.number}</div>
+                      <div style={styles.unitBadge}>H{unit.unit_number}</div>
                       <div>
-                        <p style={styles.unitTenant}>{unit.tenant || 'Available'}</p>
-                        <p style={styles.unitRent}>Ksh {unit.rent.toLocaleString()}</p>
+                        <p style={styles.unitTenant}>{occupant ? occupant.full_name : 'Available'}</p>
+                        <p style={styles.unitRent}>Ksh {unit.rent_amount.toLocaleString()}</p>
                       </div>
                     </div>
                     <p style={{
@@ -288,10 +308,10 @@ function LandlordDashboard() {
                   {monthExpenses.length === 0 ? (
                     <p style={styles.placeholderText}>No expenses for {selectedMonth}</p>
                   ) : (
-                    monthExpenses.map((expense, index) => {
+                    monthExpenses.map((expense) => {
                       const catStyle = getCategoryStyle(expense.category);
                       return (
-                        <div key={index} style={styles.expenseRow}>
+                        <div key={expense.expense_id} style={styles.expenseRow}>
                           <span style={{
                             ...styles.categoryBadge,
                             backgroundColor: catStyle.bg,
@@ -316,15 +336,16 @@ function LandlordDashboard() {
               <div style={{ flex: 1 }}>
                 <div style={styles.card}>
                   <p style={styles.cardTitle}>Unit Breakdown — {selectedMonth}</p>
-                  {mockUnits.map((unit) => {
-                    const payment = monthPayments.find(p => p.unit === unit.number);
+                  {units.map((unit) => {
+                    const occupant = tenants.find((t) => t.unit_id === unit.unit_id && t.status === 'active');
+                    const payment = monthPayments.find((p) => p.unit_number === unit.unit_number);
                     return (
-                      <div key={unit.id} style={styles.unitRow}>
+                      <div key={unit.unit_id} style={styles.unitRow}>
                         <div style={styles.unitLeft}>
-                          <div style={styles.unitBadge}>H{unit.number}</div>
+                          <div style={styles.unitBadge}>H{unit.unit_number}</div>
                           <div>
-                            <p style={styles.unitTenant}>{unit.tenant || 'Available'}</p>
-                            <p style={styles.unitRent}>Ksh {unit.rent.toLocaleString()}</p>
+                            <p style={styles.unitTenant}>{occupant ? occupant.full_name : 'Available'}</p>
+                            <p style={styles.unitRent}>Ksh {unit.rent_amount.toLocaleString()}</p>
                           </div>
                         </div>
                         <span style={{
@@ -363,8 +384,7 @@ function LandlordDashboard() {
   );
 }
 
-const GREEN      = '#1a7a4a';
-const DARK_GREEN = '#145f38';
+const GREEN = '#1a7a4a';
 
 const styles = {
   page: {

@@ -9,6 +9,19 @@ const messageTemplates = {
   custom: '',
 };
 
+function getNextBillingPeriod(bills) {
+  if (!bills || bills.length === 0) {
+    const now = new Date();
+    return { month: now.toLocaleString('en-US', { month: 'long' }), year: now.getFullYear() };
+  }
+  const latest = bills.reduce((a, b) =>
+    new Date(`${b.month} 1, ${b.year}`) > new Date(`${a.month} 1, ${a.year}`) ? b : a
+  );
+  const next = new Date(`${latest.month} 1, ${latest.year}`);
+  next.setMonth(next.getMonth() + 1);
+  return { month: next.toLocaleString('en-US', { month: 'long' }), year: next.getFullYear() };
+}
+
 function AdminDashboard() {
   const [waterHistory, setWaterHistory] = useState([
     { id: 1, month: 'july 2026', amount: 1200, house7: 1200, house8: 980 },
@@ -54,6 +67,8 @@ function AdminDashboard() {
   const [newUnitPaymentType, setNewUnitPaymentType] = useState('paybill');
   const [newUnitPhone, setNewUnitPhone] = useState('');
   const [newUnitHasWater, setNewUnitHasWater] = useState(false);
+  const [nextPeriod7, setNextPeriod7] = useState(null);
+  const [nextPeriod8, setNextPeriod8] = useState(null);
 
   useEffect(() => {
     function handleResize() {
@@ -253,6 +268,36 @@ function AdminDashboard() {
     }
   }
 
+  async function loadWaterBills() {
+    try {
+      const [res7, res8] = await Promise.all([
+        fetch('http://localhost:5000/api/water-bills/7', { credentials: 'include' }),
+        fetch('http://localhost:5000/api/water-bills/8', { credentials: 'include' }),
+      ]);
+      const data7 = await res7.json();
+      const data8 = await res8.json();
+      if (!res7.ok || !res8.ok) return;
+
+      setNextPeriod7(getNextBillingPeriod(data7));
+      setNextPeriod8(getNextBillingPeriod(data8));
+
+      const merged = {};
+      data7.forEach((b) => {
+        const key = `${b.month}-${b.year}`;
+        merged[key] = merged[key] || { id: key, month: `${b.month} ${b.year}`, house7: 0, house8: 0 };
+        merged[key].house7 = b.amount;
+      });
+      data8.forEach((b) => {
+        const key = `${b.month}-${b.year}`;
+        merged[key] = merged[key] || { id: key, month: `${b.month} ${b.year}`, house7: 0, house8: 0 };
+        merged[key].house8 = b.amount;
+      });
+      setWaterHistory(Object.values(merged));
+    } catch (err) {
+      console.error('Could not load water bills:', err);
+    }
+  }
+
   async function loadMessages() {
     try {
       const res = await fetch ('http://localhost:5000/api/messages', {
@@ -272,6 +317,7 @@ function AdminDashboard() {
         await loadExpenses();
         await loadMessages();
         await loadUnits();
+        await loadWaterBills();
         await loadProperties();
         await loadTenants();
         await loadPending();
@@ -607,35 +653,46 @@ function AdminDashboard() {
       alert('Could not reach the server.');
     }
   }
+  
 
-  function handleSaveWaterBill(houseNumber, amount) {
+  async function handleSaveWaterBill(houseNumber, amount) {
     if (!amount || parseInt(amount) < 1) {
       alert('please enter a valid amount');
       return;
     }
-    setUnits(units.map(u =>
-      u.unit_number === houseNumber
-        ? { ...u, water_bill: parseInt(amount) }
-        : u
-    ));
-    if (houseNumber === 7) setNewWater7('');
-    if (houseNumber === 8) setNewWater8('');
-    alert(`House ${houseNumber} water bill updated to Ksh ${parseInt(amount).toLocaleString()}!`);
-  }
+    const unit = units.find((u) => u.unit_number === houseNumber);
+    if (!unit) {
+      alert('Unit not found.');
+      return;
+    }
+    const period = houseNumber === 7 ? nextPeriod7 : nextPeriod8;
+    if (!period) {
+      alert('Billing period not loaded yet, try again.');
+      return;
+    }
+    const month = period.month;
+    const year = period.year;
 
-  function handleSaveMonthlyBills() {
-    const house7Bill = units.find(u => u.unit_number === 7)?.water_bill || 0;
-    const house8Bill = units.find(u => u.unit_number === 8)?.water_bill || 0;
-
-    const newRecord = {
-      id: Date.now(),
-      month: 'July 2026',
-      house7: house7Bill,
-      house8: house8Bill,
-    };
-
-    setWaterHistory([newRecord, ...waterHistory]);
-    alert('Water bills are saved for the History of July 2026');
+    try {
+      const res = await fetch('http://localhost:5000/api/water-bills', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ unit_id: unit.unit_id, amount: parseInt(amount), month, year }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Could not save water bill.');
+        return;
+      }
+      await loadUnits();
+      await loadWaterBills();
+      if (houseNumber === 7) setNewWater7('');
+      if (houseNumber === 8) setNewWater8('');
+      alert(`House ${houseNumber} water bill updated to Ksh ${parseInt(amount).toLocaleString()}!`);
+    } catch (err) {
+      alert('Could not reach the server.');
+    }
   }
 
   function DashboardContent() {
@@ -1334,6 +1391,9 @@ function AdminDashboard() {
                             <p style={styles.waterCurrentBill}>
                               Current: Ksh {(unit7?.water_bill || 0).toLocaleString()}
                             </p>
+                            <p style={{ fontSize: '12px', color: '#f57c00', margin: '4px 0 0', fontWeight: 600 }}>
+                              Billing for: {nextPeriod7 ? `${nextPeriod7.month} ${nextPeriod7.year}` : '...'}
+                            </p>
                           </div>
                         </div>
                         <div style={styles.waterInputRow}>
@@ -1362,6 +1422,9 @@ function AdminDashboard() {
                             <p style={styles.waterCurrentBill}>
                               Current: Ksh {(unit8?.water_bill || 0).toLocaleString()}
                             </p>
+                            <p style={{ fontSize: '12px', color: '#f57c00', margin: '4px 0 0', fontWeight: 600 }}>
+                              Billing for: {nextPeriod8 ? `${nextPeriod8.month} ${nextPeriod8.year}` : '...'}
+                            </p>
                           </div>
                         </div>
                         <div style={styles.waterInputRow}>
@@ -1378,8 +1441,6 @@ function AdminDashboard() {
                       </div>
                     );
                   })()}
-
-                  <button onClick={handleSaveMonthlyBills} style={styles.saveMonthBtn}>Save Monthly Bills</button>
 
                   <div style={styles.card}>
                     <p style={styles.cardTitle}>Water Bill History</p>
