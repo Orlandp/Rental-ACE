@@ -2,61 +2,12 @@ import React, { useState, useEffect } from 'react';
 
 const mockAdmin = { name: 'James Orlando', property: 'Ace Apartments', location: 'Eldoret' };
 
-const mockUnits = [
-  { id: 1, number: 1, tenant: 'James Orlando', rent: 12000, payment_type: 'paybill', has_water: false, water_bill: 0, status: 'occupied', payment_status: 'paid' },
-  { id: 2, number: 2, tenant: 'Sarah Akinyi', rent: 15000, payment_type: 'paybill', has_water: false, water_bill: 0, status: 'occupied', payment_status: 'unpaid' },
-  { id: 3, number: 3, tenant: 'Peter Otieno', rent: 18000, payment_type: 'paybill', has_water: false, water_bill: 0, status: 'occupied', payment_status: 'paid' },
-  { id: 4, number: 4, tenant: 'Mary Wanjiku', rent: 20000, payment_type: 'paybill', has_water: false, water_bill: 0, status: 'occupied', payment_status: 'paid' },
-  { id: 5, number: 5, tenant: 'David Mwangi', rent: 22000, payment_type: 'paybill', has_water: false, water_bill: 0, status: 'occupied', payment_status: 'unpaid' },
-  { id: 6, number: 6, tenant: 'Grace Njeri', rent: 25000, payment_type: 'paybill', has_water: false, water_bill: 0, status: 'occupied', payment_status: 'paid' },
-  { id: 7, number: 7, tenant: 'Paul Odhiambo', rent: 28000, payment_type: 'phone', has_water: true, water_bill: 1200, status: 'occupied', payment_status: 'paid' },
-  { id: 8, number: 8, tenant: 'Ann Chebet', rent: 28000, payment_type: 'phone', has_water: true, water_bill: 980, status: 'occupied', payment_status: 'unpaid' },
-  { id: 9, number: 9, tenant: 'Admin Unit', rent: 28000, payment_type: 'phone', has_water: false, water_bill: 0, status: 'occupied', payment_status: 'paid' },
-];
-
-const mockTenants = [
-  { id: 1, name: 'James Orlando', username: 'james1', phone: '0712111001', id_number: '11111111', house: 1, penalty_date: 5, penalty_rate: 5.0, status: 'active', move_in: '1 Jan 2026', move_out: null },
-  { id: 2, name: 'Sarah Akinyi', username: 'sarah2', phone: '0712111002', id_number: '22222222', house: 2, penalty_date: 10, penalty_rate: 8.0, status: 'active', move_in: '1 Jan 2026', move_out: null },
-  { id: 3, name: 'Peter Otieno', username: 'peter3', phone: '0712111003', id_number: '33333333', house: 3, penalty_date: 5, penalty_rate: 5.0, status: 'active', move_in: '1 Feb 2026', move_out: null },
-  { id: 4, name: 'Mary Wanjiku', username: 'mary4', phone: '0712111004', id_number: '44444444', house: 4, penalty_date: 10, penalty_rate: 8.0, status: 'active', move_in: '1 Feb 2026', move_out: null },
-  { id: 5, name: 'David Mwangi', username: 'david5', phone: '0712111005', id_number: '55555555', house: 5, penalty_date: 5, penalty_rate: 5.0, status: 'active', move_in: '1 Mar 2026', move_out: null },
-  { id: 6, name: 'Grace Njeri', username: 'grace6', phone: '0712111006', id_number: '66666666', house: 6, penalty_date: 5, penalty_rate: 5.0, status: 'active', move_in: '1 Mar 2026', move_out: null },
-  { id: 7, name: 'Paul Odhiambo', username: 'paul7', phone: '0712111007', id_number: '77777777', house: 7, penalty_date: 10, penalty_rate: 8.0, status: 'active', move_in: '1 Apr 2026', move_out: null },
-  { id: 8, name: 'Ann Chebet', username: 'ann8', phone: '0712111008', id_number: '88888888', house: 8, penalty_date: 5, penalty_rate: 5.0, status: 'active', move_in: '1 Apr 2026', move_out: null },
-  { id: 9, name: 'Admin Unit', username: 'admin9', phone: '0712111009', id_number: '99999999', house: 9, penalty_date: 5, penalty_rate: 5.0, status: 'active', move_in: '1 Jan 2026', move_out: null },
-];
-
-const mockAllPayments = [
-  { id: 1, tenant: 'James Orlando', house: 1, amount: 12000, date: '1 Jul 2026', month: 'July 2026', mpesa_code: 'QHX7234KLP', status: 'paid' },
-  { id: 2, tenant: 'Sarah Akinyi', house: 2, amount: 15000, date: '1 Jul 2026', month: 'July 2026', mpesa_code: null, status: 'unpaid' },
-  { id: 3, tenant: 'Peter Otieno', house: 3, amount: 18000, date: '1 Jul 2026', month: 'July 2026', mpesa_code: 'RKL8923MNP', status: 'paid' },
-  { id: 4, tenant: 'Mary Wanjiku', house: 4, amount: 20000, date: '1 Jul 2026', month: 'July 2026', mpesa_code: 'PLM3421QRS', status: 'paid' },
-  { id: 5, tenant: 'David Mwangi', house: 5, amount: 22000, date: '1 Jul 2026', month: 'July 2026', mpesa_code: null, status: 'unpaid' },
-  { id: 6, tenant: 'Grace Njeri', house: 6, amount: 25000, date: '2 Jul 2026', month: 'July 2026', mpesa_code: 'NKJ9821WXY', status: 'paid' },
-  { id: 7, tenant: 'Paul Odhiambo', house: 7, amount: 29200, date: '2 Jul 2026', month: 'July 2026', mpesa_code: 'MHG4532ABC', status: 'paid' },
-  { id: 8, tenant: 'Ann Chebet', house: 8, amount: 28980, date: '2 Jul 2026', month: 'July 2026', mpesa_code: null, status: 'unpaid' },
-  { id: 9, tenant: 'James Orlando', house: 1, amount: 12000, date: '1 Jun 2026', month: 'June 2026', mpesa_code: 'LKP2341DEF', status: 'paid' },
-  { id: 10, tenant: 'Sarah Akinyi', house: 2, amount: 15000, date: '2 Jun 2026', month: 'June 2026', mpesa_code: 'JHG7654MNO', status: 'paid' },
-];
-
 const messageTemplates = {
   reminder: 'Dear tenant, your rent is due on the 1st. Please pay via the QR code on your door.',
   confirmed: 'Your payment has been received. Thank you.',
   balance: 'You have an outstanding balance. Please clear it at your earliest convenience.',
   custom: '',
 };
-
-const mockExpenses = [
-  { id: 1, category: 'Repairs', description: 'Roof repair unit 3', amount: 5000, date: '1 Jul 2026' },
-  { id: 2, category: 'Cleaning', description: 'Common area cleaning', amount: 2000, date: '1 Jul 2026' },
-  { id: 3, category: 'Security', description: 'Guard salary July', amount: 8000, date: '1 Jul 2026' },
-];
-
-const mockRecentPayments = [
-  { id: 1, tenant: 'James Orlando', house: 1, amount: 12000, date: '1 Jul 2026', status: 'paid' },
-  { id: 2, tenant: 'Sarah Akinyi', house: 2, amount: 15000, date: '1 Jul 2026', status: 'unpaid' },
-  { id: 3, tenant: 'Peter Otieno', house: 3, amount: 18000, date: '1 Jul 2026', status: 'paid' },
-];
 
 function AdminDashboard() {
   const [waterHistory, setWaterHistory] = useState([
@@ -92,8 +43,17 @@ function AdminDashboard() {
   const [editingTenant, setEditingTenant] = useState(null);
   const [editName, setEditName] = useState('');
   const [editPhone, setEditPhone] = useState('');
-  const [editPenaltyDate, setEditPenaltyDate] = useState('');
-  const [editPenaltyRate, setEditPenaltyRate] = useState('');
+  const [properties, setProperties] = useState([]);
+  const [newPropertyName, setNewPropertyName] = useState('');
+  const [newPropertyLocation, setNewPropertyLocation] = useState('');
+  const [newPropertyPaybill, setNewPropertyPaybill] = useState('');
+  const [newPropertyAccount, setNewPropertyAccount] = useState('');
+  const [newUnitPropertyId, setNewUnitPropertyId] = useState('');
+  const [newUnitNumber, setNewUnitNumber] = useState('');
+  const [newUnitRent, setNewUnitRent] = useState('');
+  const [newUnitPaymentType, setNewUnitPaymentType] = useState('paybill');
+  const [newUnitPhone, setNewUnitPhone] = useState('');
+  const [newUnitHasWater, setNewUnitHasWater] = useState(false);
 
   useEffect(() => {
     function handleResize() {
@@ -103,7 +63,6 @@ function AdminDashboard() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // ---- NEW: real fetch for pending tenants ----
   async function loadPending() {
     try {
       const res = await fetch('http://localhost:5000/api/tenants/pending', {
@@ -116,16 +75,207 @@ function AdminDashboard() {
     }
   }
 
+  async function loadUnits() {
+    try {
+      const res = await fetch('http://localhost:5000/api/units', {
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (res.ok) setUnits(data);
+    } catch (err) {
+      console.error('Could not load units:', err);
+    }
+  }
+
+  async function loadProperties() {
+    try {
+      const res = await fetch('http://localhost:5000/api/properties', {
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (res.ok) setProperties(data);
+    } catch (err) {
+      console.error('Could not load properties:', err);
+    }
+  }
+
+  async function handleAddProperty() {
+    if (!newPropertyName.trim() || !newPropertyLocation.trim() || !newPropertyAccount.trim()) {
+      alert('Name, location, and account number are required.');
+      return;
+    }
+    try {
+      const res = await fetch('http://localhost:5000/api/properties', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          name: newPropertyName,
+          location: newPropertyLocation,
+          paybill_no: newPropertyPaybill || null,
+          account_no: newPropertyAccount,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Could not add property.');
+        return;
+      }
+      await loadProperties();
+      setNewPropertyName('');
+      setNewPropertyLocation('');
+      setNewPropertyPaybill('');
+      setNewPropertyAccount('');
+      alert('Property added!');
+    } catch (err) {
+      alert('Could not reach the server.');
+    }
+  }
+
+  async function handleDeleteProperty(propertyId) {
+    const confirmed = window.confirm(
+      'Delete this property? This only works if it has no units left.',
+    );
+    if (!confirmed) return;
+
+    try {
+      const res = await fetch(`http://localhost:5000/api/properties/${propertyId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Could not delete property.');
+        return;
+      }
+      await loadProperties();
+      alert('Property deleted.');
+    } catch (err) {
+      alert('Could not reach the server.');
+    }
+  }
+
+  async function handleAddUnit() {
+    if (!newUnitPropertyId || !newUnitNumber || !newUnitRent) {
+      alert('Property, unit number, and rent are required.');
+      return;
+    }
+    try {
+      const res = await fetch(`http://localhost:5000/api/properties/${newUnitPropertyId}/units`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          unit_number: parseInt(newUnitNumber),
+          rent_amount: parseInt(newUnitRent),
+          payment_type: newUnitPaymentType,
+          phone_no: newUnitPaymentType === 'phone' ? newUnitPhone : null,
+          has_water_bill: newUnitHasWater ? 1 : 0,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Could not add unit.');
+        return;
+      }
+      await loadUnits();
+      setNewUnitPropertyId('');
+      setNewUnitNumber('');
+      setNewUnitRent('');
+      setNewUnitPaymentType('paybill');
+      setNewUnitPhone('');
+      setNewUnitHasWater(false);
+      alert('Unit added!');
+    } catch (err) {
+      alert('Could not reach the server.');
+    }
+  }
+
+  async function handleDeleteUnit(unitId) {
+    const confirmed = window.confirm(
+      'Delete this unit? This only works if it has no active tenant.',
+    );
+    if (!confirmed) return;
+
+    try {
+      const res = await fetch(`http://localhost:5000/api/units/${unitId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Could not delete unit.');
+        return;
+      }
+      await loadUnits();
+      alert('Unit deleted.');
+    } catch (err) {
+      alert('Could not reach the server.');
+    }
+  }
+
+  async function loadTenants() {
+    try {
+      const res = await fetch('http://localhost:5000/api/tenants', {
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (res.ok) setTenants(data);
+    } catch (err) {
+      console.error('Could not load tenants:', err);
+    }
+  }
+
+  async function loadPayments() {
+    try {
+      const res = await fetch('http://localhost:5000/api/payments', {
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setAllPayments(data);
+        setPayments(data.slice(0, 3));
+      }
+    } catch (err) {
+      console.error('Could not load payments:', err);
+    }
+  }
+
+  async function loadExpenses() {
+    try {
+      const res = await fetch ('http://localhost:5000/api/expenses', {
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (res.ok) setExpenses(data);
+    } catch (err) {
+      console.error('could not load expenses:',err);
+    }
+  }
+
+  async function loadMessages() {
+    try {
+      const res = await fetch ('http://localhost:5000/api/messages', {
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (res.ok) setMessageHistory(data);    
+    } catch (err) {
+      console.error('could not load messages:',err);
+    }
+  }
+
   useEffect(() => {
     async function loadData() {
       try {
         setAdmin(mockAdmin);
-        setUnits(mockUnits);
-        setExpenses(mockExpenses);
-        setTenants(mockTenants);
-        await loadPending();               // <-- CHANGED from setPending(mockPending)
-        setPayments(mockRecentPayments);
-        setAllPayments(mockAllPayments);
+        await loadExpenses();
+        await loadMessages();
+        await loadUnits();
+        await loadProperties();
+        await loadTenants();
+        await loadPending();
+        await loadPayments();
       } catch (err) {
         setError('Could not load dashboard.');
       } finally {
@@ -136,8 +286,8 @@ function AdminDashboard() {
   }, []);
 
   const totalUnits = units.length;
-  const occupiedUnits = units.filter((u) => u.status === 'occupied').length;
-  const availableUnits = units.filter((u) => u.status === 'available').length;
+  const occupiedUnits = units.filter((u) => (u.status || '').toUpperCase() === 'OCCUPIED').length;
+  const availableUnits = units.filter((u) => (u.status || '').toUpperCase() === 'AVAILABLE').length;
   const pendingCount = pending.length;
   const filteredPayments = allPayments.filter((p) => {
     if (filterStatus !== 'all' && p.status !== filterStatus) return false;
@@ -159,7 +309,6 @@ function AdminDashboard() {
     window.location.href = '/login';
   }
 
-  // ---- CHANGED: real approve/reject ----
   async function handleApprove(userId, unitId) {
     try {
       const res = await fetch(`http://localhost:5000/api/tenants/${userId}/approve`, {
@@ -174,6 +323,8 @@ function AdminDashboard() {
         return;
       }
       await loadPending();
+      await loadTenants();
+      await loadUnits();
       alert('Tenant approved!');
     } catch (err) {
       alert('Could not reach the server.');
@@ -208,88 +359,103 @@ function AdminDashboard() {
   }
 
   function getStatusColor(status) {
-    if (status === 'occupied') return '#1a7a4a';
-    if (status === 'available') return '#2980b9';
-    if (status === 'vacating') return '#f57c00';
-    if (status === 'maintenance') return '#c0392b';
+    const s = (status || '').toUpperCase();
+    if (s === 'OCCUPIED') return '#1a7a4a';
+    if (s === 'AVAILABLE') return '#2980b9';
+    if (s === 'VACATING') return '#f57c00';
+    if (s === 'MAINTENANCE') return '#c0392b';
     return '#888';
   }
 
   function getStatusBg(status) {
-    if (status === 'occupied') return '#e8f5ee';
-    if (status === 'available') return '#e8f4fd';
-    if (status === 'vacating') return '#fff8e1';
-    if (status === 'maintenance') return '#fdecea';
+    const s = (status || '').toUpperCase();
+    if (s === 'OCCUPIED') return '#e8f5ee';
+    if (s === 'AVAILABLE') return '#e8f4fd';
+    if (s === 'VACATING') return '#fff8e1';
+    if (s === 'MAINTENANCE') return '#fdecea';
     return '#f4f6f8';
   }
 
   function handleEditUnit(unit) {
-    setEditingUnit(unit.id);
-    setEditRent(unit.rent);
+    setEditingUnit(unit.unit_id);
+    setEditRent(unit.rent_amount);
     setEditWater(unit.water_bill || 0);
   }
 
-  function handleSaveUnit(unitId) {
-    setUnits(
-      units.map((u) =>
-        u.id === unitId
-          ? { ...u, rent: parseInt(editRent), water_bill: parseInt(editWater) }
-          : u,
-      ),
-    );
-    setEditingUnit(null);
+  async function handleSaveUnit(unitId) {
+    try {
+      const res = await fetch(`http://localhost:5000/api/units/${unitId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          rent_amount: parseInt(editRent),
+          water_bill: parseInt(editWater),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Could not update unit.');
+        return;
+      }
+      await loadUnits();
+      setEditingUnit(null);
+    } catch (err) {
+      alert('Could not reach the server.');
+    }
   }
 
-  function handleStatusChange(unitId, newStatus) {
-    setUnits(
-      units.map((u) => (u.id === unitId ? { ...u, status: newStatus } : u)),
-    );
+  async function handleStatusChange(unitId, newStatus) {
+    try {
+      const res = await fetch(`http://localhost:5000/api/units/${unitId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ status: newStatus }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Could not update status.');
+        return;
+      }
+      await loadUnits();
+    } catch (err) {
+      alert('Could not reach the server.');
+    }
   }
 
   function handleEditTenant(tenant) {
-    setEditingTenant(tenant.id);
-    setEditName(tenant.name);
+    setEditingTenant(tenant.user_id);
+    setEditName(tenant.full_name);
     setEditPhone(tenant.phone);
-    setEditPenaltyDate(tenant.penalty_date);
-    setEditPenaltyRate(tenant.penalty_rate);
   }
 
   function handleSaveTenant(tenantId) {
-    setTenants(
-      tenants.map((t) =>
-        t.id === tenantId
-          ? {
-              ...t,
-              name: editName,
-              phone: editPhone,
-              penalty_date: parseInt(editPenaltyDate),
-              penalty_rate: parseFloat(editPenaltyRate),
-            }
-          : t,
-      ),
-    );
     setEditingTenant(null);
   }
 
-  function handleVacate(tenantId) {
+  async function handleVacate(tenantId) {
     const confirmed = window.confirm(
       'Are you sure you want to mark this tenant as vacated?',
     );
     if (!confirmed) return;
-    setTenants(
-      tenants.map((t) =>
-        t.id === tenantId
-          ? { ...t, status: 'vacated', move_out: '4 Jul 2026' }
-          : t,
-      ),
-    );
-    setUnits(
-      units.map((u) =>
-        u.number === tenants.find((t) => t.id === tenantId)?.house
-          ? { ...u, status: 'available', tenant: null }
-          : u,
-      ),
-    );
+
+    try {
+      const res = await fetch(`http://localhost:5000/api/tenants/${tenantId}/vacate`, {
+        method: 'PUT',
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Could not vacate tenant.');
+        return;
+      }
+      await loadTenants();
+      await loadUnits();
+      alert('Tenant vacated.');
+    } catch (err) {
+      alert('Could not reach the server.');
+    }
   }
 
   function getCategoryStyle(category) {
@@ -300,7 +466,7 @@ function AdminDashboard() {
     return { bg: '#f4f6f8', color: '#555' };
   }
 
-  function handleAddExpense() {
+  async function handleAddExpense() {
     if (!newDescription.trim()) {
       alert('Please enter a description.');
       return;
@@ -309,41 +475,66 @@ function AdminDashboard() {
       alert('Please enter a valid amount.');
       return;
     }
-    const newExpense = {
-      id: Date.now(),
-      category: newCategory,
-      description: newDescription,
-      amount: parseInt(newAmount),
-      date: new Date().toLocaleDateString('en-KE'),
-    };
-    setExpenses([...expenses, newExpense]);
-    setNewDescription('');
-    setNewAmount('');
+    const propertyId = properties[0]?.property_id;
+    if (!propertyId) {
+      alert('No property found to attach this expense to.');
+      return;
+    }
+
+    try {
+      const res = await fetch('http://localhost:5000/api/expenses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          property_id: propertyId,
+          category: newCategory,
+          description: newDescription,
+          amount: parseInt(newAmount),
+          expense_date: new Date().toISOString().slice(0, 10),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Could not record expense.');
+        return;
+      }
+      await loadExpenses();
+      setNewDescription('');
+      setNewAmount('');
+    } catch (err) {
+      alert('Could not reach the server.');
+    }
   }
 
-  function handleDeleteExpense(id) {
+  async function handleDeleteExpense(id) {
     const confirmed = window.confirm('Delete this expense?');
     if (!confirmed) return;
-    setExpenses(expenses.filter((e) => e.id !== id));
+
+    try {
+      const res = await fetch(`http://localhost:5000/api/expenses/${id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Could not delete expense.');
+        return;
+      }
+      await loadExpenses();
+    } catch (err) {
+      alert('Could not reach the server.');
+    }
   }
+
   const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
 
   const categoryTotals = {
-    Repairs: expenses
-      .filter((e) => e.category === 'Repairs')
-      .reduce((sum, e) => sum + e.amount, 0),
-    Cleaning: expenses
-      .filter((e) => e.category === 'Cleaning')
-      .reduce((sum, e) => sum + e.amount, 0),
-    Utilities: expenses
-      .filter((e) => e.category === 'Utilities')
-      .reduce((sum, e) => sum + e.amount, 0),
-    Security: expenses
-      .filter((e) => e.category === 'Security')
-      .reduce((sum, e) => sum + e.amount, 0),
-    Other: expenses
-      .filter((e) => e.category === 'Other')
-      .reduce((sum, e) => sum + e.amount, 0),
+    Repairs: expenses.filter((e) => e.category === 'Repairs').reduce((sum, e) => sum + e.amount, 0),
+    Cleaning: expenses.filter((e) => e.category === 'Cleaning').reduce((sum, e) => sum + e.amount, 0),
+    Utilities: expenses.filter((e) => e.category === 'Utilities').reduce((sum, e) => sum + e.amount, 0),
+    Security: expenses.filter((e) => e.category === 'Security').reduce((sum, e) => sum + e.amount, 0),
+    Other: expenses.filter((e) => e.category === 'Other').reduce((sum, e) => sum + e.amount, 0),
   };
 
   const navItems = [
@@ -375,66 +566,77 @@ function AdminDashboard() {
     setMessageText(messageTemplates[template]);
   }
 
-  function handleSendMessage() {
+  async function sendOneMessage(phone) {
+    const res = await fetch('http://localhost:5000/api/messages/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ recipient: phone, content: messageText }),
+    });
+    return res.ok;
+  }
+
+  async function handleSendMessage() {
     if (!messageText.trim()) {
       alert('Please enter a message.');
       return;
     }
 
-    const recipientName =
+    const activeTenants = tenants.filter((t) => t.status === 'active');
+    const targets =
       recipient === 'all'
-        ? `All Tenants (${tenants.filter((t) => t.status === 'active').length})`
+        ? activeTenants.map((t) => t.phone)
         : (() => {
-            const t = tenants.find((t) => t.id === parseInt(recipient));
-            return t ? `${t.name} - H${t.house}` : 'Unknown';
+            const t = tenants.find((t) => t.user_id === parseInt(recipient));
+            return t ? [t.phone] : [];
           })();
 
-    const newMessage = {
-      id: Date.now(),
-      recipient: recipientName,
-      content: messageText,
-      date: new Date().toLocaleDateString('en-KE'),
-      status: 'sent',
-    };
-
-    setMessageHistory([newMessage, ...messageHistory]);
-    setMessageText('');
-    alert(
-      `SMS sent to ${recipientName} successfully!\n\nIn backend phase this will use Africa's Talking API.`,
-    );
-  }
-  function handleSaveWaterBill(houseNumber, amount) {
-    if(!amount || parseInt(amount) < 1) {
-      alert('please enter a valid amount');
+    if (targets.length === 0) {
+      alert('No valid recipient found.');
       return;
     }
 
+    try {
+      for (const phone of targets) {
+        await sendOneMessage(phone);
+      }
+      await loadMessages();
+      setMessageText('');
+      alert(`Message sent to ${targets.length} recipient(s)!`);
+    } catch (err) {
+      alert('Could not reach the server.');
+    }
+  }
+
+  function handleSaveWaterBill(houseNumber, amount) {
+    if (!amount || parseInt(amount) < 1) {
+      alert('please enter a valid amount');
+      return;
+    }
     setUnits(units.map(u =>
-    u.number === houseNumber
-      ? { ...u, water_bill: parseInt(amount) }
-      : u
-  ));
-  if(houseNumber === 7)setNewWater7('');
-  if(houseNumber === 8)setNewWater8('');
-   alert(`House ${houseNumber} water bill updated to Ksh ${parseInt(amount).toLocaleString()}!`);
-}
-function handleSaveMonthlyBills() {
-  const house7Bill = units.find( u => u.number === 7)?.water_bill || 0;
-  const house8Bill = units.find( u => u.number === 8)?.water_bill || 0;
+      u.unit_number === houseNumber
+        ? { ...u, water_bill: parseInt(amount) }
+        : u
+    ));
+    if (houseNumber === 7) setNewWater7('');
+    if (houseNumber === 8) setNewWater8('');
+    alert(`House ${houseNumber} water bill updated to Ksh ${parseInt(amount).toLocaleString()}!`);
+  }
 
-  const newRecord = {
-    id: Date.now(),
-    month: 'July 2026',
-    house7: house7Bill,
-    house8: house8Bill,
-  };
+  function handleSaveMonthlyBills() {
+    const house7Bill = units.find(u => u.unit_number === 7)?.water_bill || 0;
+    const house8Bill = units.find(u => u.unit_number === 8)?.water_bill || 0;
 
-  setWaterHistory([newRecord, ...waterHistory]);
-  alert('Water bills are saved for the History of July 2026');
+    const newRecord = {
+      id: Date.now(),
+      month: 'July 2026',
+      house7: house7Bill,
+      house8: house8Bill,
+    };
 
-}
-
-
+    setWaterHistory([newRecord, ...waterHistory]);
+    alert('Water bills are saved for the History of July 2026');
+  }
 
   function DashboardContent() {
     return (
@@ -458,32 +660,12 @@ function handleSaveMonthlyBills() {
         <div style={styles.card}>
           <p style={styles.cardTitle}>Quick Actions</p>
           <div style={styles.actionsRow}>
-            <button
-              onClick={() => setActivePage('expenses')}
-              style={styles.actionBtn}
-            >
-              + Expense
-            </button>
-            <button
-              onClick={() => setActivePage('messages')}
-              style={styles.actionBtn}
-            >
-              💬 Message
-            </button>
-            <button
-              onClick={() => setActivePage('water')}
-              style={styles.actionBtn}
-            >
-              💧 Water Bills
-            </button>
+            <button onClick={() => setActivePage('expenses')} style={styles.actionBtn}>+ Expense</button>
+            <button onClick={() => setActivePage('messages')} style={styles.actionBtn}>💬 Message</button>
+            <button onClick={() => setActivePage('water')} style={styles.actionBtn}>💧 Water Bills</button>
             <button
               onClick={() => setActivePage('dashboard')}
-              style={{
-                ...styles.actionBtn,
-                backgroundColor: '#fff8e1',
-                color: '#f57c00',
-                border: '1px solid #ffe082',
-              }}
+              style={{ ...styles.actionBtn, backgroundColor: '#fff8e1', color: '#f57c00', border: '1px solid #ffe082' }}
             >
               ✅ Approvals {pendingCount > 0 && `(${pendingCount})`}
             </button>
@@ -494,23 +676,16 @@ function handleSaveMonthlyBills() {
           <div style={{ ...styles.card, flex: 1 }}>
             <p style={styles.cardTitle}>Recent Payments</p>
             {payments.map((payment) => (
-              <div key={payment.id} style={styles.paymentRow}>
+              <div key={payment.payment_id} style={styles.paymentRow}>
                 <div>
-                  <p style={styles.paymentTenant}>{payment.tenant}</p>
+                  <p style={styles.paymentTenant}>{payment.tenant_name}</p>
                   <p style={styles.paymentDate}>
-                    House {payment.house} · {payment.date}
+                    House {payment.unit_number} · {payment.payment_date}
                   </p>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <p style={styles.paymentAmount}>
-                    Ksh {payment.amount.toLocaleString()}
-                  </p>
-                  <p
-                    style={{
-                      ...styles.paymentStatus,
-                      color: getPaymentColor(payment.status),
-                    }}
-                  >
+                  <p style={styles.paymentAmount}>Ksh {payment.amount.toLocaleString()}</p>
+                  <p style={{ ...styles.paymentStatus, color: getPaymentColor(payment.status) }}>
                     {payment.status.toUpperCase()}
                   </p>
                 </div>
@@ -518,7 +693,6 @@ function handleSaveMonthlyBills() {
             ))}
           </div>
 
-          {/* ---- CHANGED: pending list now uses real field names ---- */}
           {pendingCount > 0 && (
             <div style={{ ...styles.card, flex: 1 }}>
               <p style={styles.cardTitle}>Pending ({pendingCount})</p>
@@ -529,23 +703,11 @@ function handleSaveMonthlyBills() {
                     <p style={styles.pendingDetails}>
                       Requested House {tenant.unit_id || '—'} · {tenant.phone}
                     </p>
-                    <p style={{ fontSize: '11px', color: '#888', margin: 0 }}>
-                      {tenant.created_at}
-                    </p>
+                    <p style={{ fontSize: '11px', color: '#888', margin: 0 }}>{tenant.created_at}</p>
                   </div>
                   <div style={{ display: 'flex', gap: '8px' }}>
-                    <button
-                      onClick={() => handleApprove(tenant.user_id, tenant.unit_id)}
-                      style={styles.approveBtn}
-                    >
-                      Approve
-                    </button>
-                    <button
-                      onClick={() => handleReject(tenant.user_id)}
-                      style={styles.rejectBtn}
-                    >
-                      Reject
-                    </button>
+                    <button onClick={() => handleApprove(tenant.user_id, tenant.unit_id)} style={styles.approveBtn}>Approve</button>
+                    <button onClick={() => handleReject(tenant.user_id)} style={styles.rejectBtn}>Reject</button>
                   </div>
                 </div>
               ))}
@@ -563,13 +725,9 @@ function handleSaveMonthlyBills() {
           <div>
             <p style={styles.headerLabel}>Admin</p>
             <h2 style={styles.headerName}>{admin.name}</h2>
-            <p style={styles.headerSub}>
-              {admin.property} · {admin.location}
-            </p>
+            <p style={styles.headerSub}>{admin.property} · {admin.location}</p>
           </div>
-          <button onClick={handleLogout} style={styles.logoutBtn}>
-            Logout
-          </button>
+          <button onClick={handleLogout} style={styles.logoutBtn}>Logout</button>
         </div>
 
         {!isDesktop && (
@@ -580,10 +738,7 @@ function handleSaveMonthlyBills() {
                 onClick={() => setActivePage(item.key)}
                 style={{
                   ...styles.mobileNavBtn,
-                  backgroundColor:
-                    activePage === item.key
-                      ? 'rgba(255,255,255,0.3)'
-                      : 'transparent',
+                  backgroundColor: activePage === item.key ? 'rgba(255,255,255,0.3)' : 'transparent',
                   fontWeight: activePage === item.key ? 700 : 400,
                 }}
               >
@@ -606,15 +761,9 @@ function handleSaveMonthlyBills() {
                 onClick={() => setActivePage(item.key)}
                 style={{
                   ...styles.sidebarBtn,
-                  backgroundColor:
-                    activePage === item.key
-                      ? 'rgba(255,255,255,0.15)'
-                      : 'transparent',
+                  backgroundColor: activePage === item.key ? 'rgba(255,255,255,0.15)' : 'transparent',
                   fontWeight: activePage === item.key ? 700 : 400,
-                  borderLeft:
-                    activePage === item.key
-                      ? '4px solid white'
-                      : '4px solid transparent',
+                  borderLeft: activePage === item.key ? '4px solid white' : '4px solid transparent',
                 }}
               >
                 {item.icon} {item.label}
@@ -627,108 +776,223 @@ function handleSaveMonthlyBills() {
         )}
 
         <div style={isDesktop ? styles.mainDesktop : styles.mainMobile}>
-          {/* DASHBOARD */}
           {activePage === 'dashboard' && <DashboardContent />}
 
           {/* UNITS */}
           {activePage === 'units' && (
             <div>
+              {/* Manage Properties */}
+              <div style={styles.card}>
+                <p style={styles.cardTitle}>Manage Properties</p>
+
+                {properties.map((p) => (
+                  <div key={p.property_id} style={styles.unitRow}>
+                    <div style={styles.unitInfo}>
+                      <p style={styles.unitTenant}>{p.name}</p>
+                      <p style={styles.unitRent}>
+                        {p.location} · Paybill {p.paybill_no || '—'} · Acc {p.account_no}
+                      </p>
+                    </div>
+                    <button onClick={() => handleDeleteProperty(p.property_id)} style={styles.deleteBtn}>
+                      Delete
+                    </button>
+                  </div>
+                ))}
+
+                <div style={styles.editRow}>
+                  <div style={styles.editField}>
+                    <p style={styles.editLabel}>Name</p>
+                    <input
+                      value={newPropertyName}
+                      onChange={(e) => setNewPropertyName(e.target.value)}
+                      placeholder="e.g. Sunrise Apartments"
+                      style={styles.editInput}
+                    />
+                  </div>
+                  <div style={styles.editField}>
+                    <p style={styles.editLabel}>Location</p>
+                    <input
+                      value={newPropertyLocation}
+                      onChange={(e) => setNewPropertyLocation(e.target.value)}
+                      placeholder="e.g. Nakuru"
+                      style={styles.editInput}
+                    />
+                  </div>
+                  <div style={styles.editField}>
+                    <p style={styles.editLabel}>Paybill (optional)</p>
+                    <input
+                      value={newPropertyPaybill}
+                      onChange={(e) => setNewPropertyPaybill(e.target.value)}
+                      placeholder="e.g. 4567"
+                      style={styles.editInput}
+                    />
+                  </div>
+                  <div style={styles.editField}>
+                    <p style={styles.editLabel}>Account No</p>
+                    <input
+                      value={newPropertyAccount}
+                      onChange={(e) => setNewPropertyAccount(e.target.value)}
+                      placeholder="e.g. 9876543210"
+                      style={styles.editInput}
+                    />
+                  </div>
+                  <button onClick={handleAddProperty} style={styles.saveBtn}>+ Add Property</button>
+                </div>
+              </div>
+
+              {/* Add Unit */}
+              <div style={styles.card}>
+                <p style={styles.cardTitle}>Add Unit</p>
+                <div style={styles.editRow}>
+                  <div style={styles.editField}>
+                    <p style={styles.editLabel}>Property</p>
+                    <select
+                      value={newUnitPropertyId}
+                      onChange={(e) => setNewUnitPropertyId(e.target.value)}
+                      style={styles.statusSelect}
+                    >
+                      <option value="">-- Select --</option>
+                      {properties.map((p) => (
+                        <option key={p.property_id} value={p.property_id}>{p.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div style={styles.editField}>
+                    <p style={styles.editLabel}>Unit Number</p>
+                    <input
+                      type="number"
+                      value={newUnitNumber}
+                      onChange={(e) => setNewUnitNumber(e.target.value)}
+                      placeholder="e.g. 11"
+                      style={styles.editInput}
+                    />
+                  </div>
+                  <div style={styles.editField}>
+                    <p style={styles.editLabel}>Rent (Ksh)</p>
+                    <input
+                      type="number"
+                      value={newUnitRent}
+                      onChange={(e) => setNewUnitRent(e.target.value)}
+                      placeholder="e.g. 20000"
+                      style={styles.editInput}
+                    />
+                  </div>
+                  <div style={styles.editField}>
+                    <p style={styles.editLabel}>Payment Type</p>
+                    <select
+                      value={newUnitPaymentType}
+                      onChange={(e) => setNewUnitPaymentType(e.target.value)}
+                      style={styles.statusSelect}
+                    >
+                      <option value="paybill">Paybill</option>
+                      <option value="phone">Phone</option>
+                    </select>
+                  </div>
+                  {newUnitPaymentType === 'phone' && (
+                    <div style={styles.editField}>
+                      <p style={styles.editLabel}>Phone Number</p>
+                      <input
+                        value={newUnitPhone}
+                        onChange={(e) => setNewUnitPhone(e.target.value)}
+                        placeholder="e.g. 0722223432"
+                        style={styles.editInput}
+                      />
+                    </div>
+                  )}
+                  <div style={styles.editField}>
+                    <p style={styles.editLabel}>Has Water Bill?</p>
+                    <select
+                      value={newUnitHasWater ? 'yes' : 'no'}
+                      onChange={(e) => setNewUnitHasWater(e.target.value === 'yes')}
+                      style={styles.statusSelect}
+                    >
+                      <option value="no">No</option>
+                      <option value="yes">Yes</option>
+                    </select>
+                  </div>
+                  <button onClick={handleAddUnit} style={styles.saveBtn}>+ Add Unit</button>
+                </div>
+              </div>
+
               <div style={styles.card}>
                 <p style={styles.cardTitle}>Units Management</p>
-                {units.map((unit) => (
-                  <div key={unit.id} style={styles.unitRow}>
-                    <div style={styles.unitBadge}>H{unit.number}</div>
-                    <div style={styles.unitInfo}>
-                      <p style={styles.unitTenant}>
-                        {unit.tenant || 'Available'}
-                      </p>
-                      {editingUnit === unit.id ? (
-                        <div style={styles.editRow}>
-                          <div style={styles.editField}>
-                            <p style={styles.editLabel}>Rent (Ksh)</p>
-                            <input
-                              type="number"
-                              value={editRent}
-                              onChange={(e) => setEditRent(e.target.value)}
-                              style={styles.editInput}
-                            />
-                          </div>
-                          {unit.has_water && (
+                {units.map((unit) => {
+                  const occupant = tenants.find((t) => t.unit_id === unit.unit_id && t.status === 'active');
+                  return (
+                    <div key={unit.unit_id} style={styles.unitRow}>
+                      <div style={styles.unitBadge}>H{unit.unit_number}</div>
+                      <div style={styles.unitInfo}>
+                        <p style={styles.unitTenant}>{occupant ? occupant.full_name : 'Available'}</p>
+                        {editingUnit === unit.unit_id ? (
+                          <div style={styles.editRow}>
                             <div style={styles.editField}>
-                              <p style={styles.editLabel}>Water Bill</p>
+                              <p style={styles.editLabel}>Rent (Ksh)</p>
                               <input
                                 type="number"
-                                value={editWater}
-                                onChange={(e) => setEditWater(e.target.value)}
+                                value={editRent}
+                                onChange={(e) => setEditRent(e.target.value)}
                                 style={styles.editInput}
                               />
                             </div>
-                          )}
-                        </div>
-                      ) : (
-                        <div>
-                          <p style={styles.unitRent}>
-                            Ksh {unit.rent.toLocaleString()} ·{' '}
-                            {unit.payment_type === 'paybill'
-                              ? 'Paybill'
-                              : 'Phone'}
-                          </p>
-                          {unit.has_water && (
-                            <p style={styles.unitWater}>
-                              💧 Water: Ksh {unit.water_bill.toLocaleString()}
+                            {unit.has_water_bill ? (
+                              <div style={styles.editField}>
+                                <p style={styles.editLabel}>Water Bill</p>
+                                <input
+                                  type="number"
+                                  value={editWater}
+                                  onChange={(e) => setEditWater(e.target.value)}
+                                  style={styles.editInput}
+                                />
+                              </div>
+                            ) : null}
+                          </div>
+                        ) : (
+                          <div>
+                            <p style={styles.unitRent}>
+                              Ksh {unit.rent_amount.toLocaleString()} ·{' '}
+                              {unit.payment_type === 'paybill' ? 'Paybill' : 'Phone'}
                             </p>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                    <div style={styles.unitActions}>
-                      <span
-                        style={{
-                          ...styles.statusBadge,
-                          backgroundColor: getStatusBg(unit.status),
-                          color: getStatusColor(unit.status),
-                        }}
-                      >
-                        {unit.status.toUpperCase()}
-                      </span>
-                      <select
-                        value={unit.status}
-                        onChange={(e) =>
-                          handleStatusChange(unit.id, e.target.value)
-                        }
-                        style={styles.statusSelect}
-                      >
-                        <option value="occupied">Occupied</option>
-                        <option value="available">Available</option>
-                        <option value="vacating">Vacating</option>
-                        <option value="maintenance">Maintenance</option>
-                      </select>
-                      {editingUnit === unit.id ? (
-                        <div style={{ display: 'flex', gap: '6px' }}>
-                          <button
-                            onClick={() => handleSaveUnit(unit.id)}
-                            style={styles.saveBtn}
-                          >
-                            Save
-                          </button>
-                          <button
-                            onClick={() => setEditingUnit(null)}
-                            style={styles.cancelBtn}
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => handleEditUnit(unit)}
-                          style={styles.editBtn}
+                            {unit.has_water_bill ? (
+                              <p style={styles.unitWater}>💧 Water: Ksh {unit.water_bill.toLocaleString()}</p>
+                            ) : null}
+                          </div>
+                        )}
+                      </div>
+                      <div style={styles.unitActions}>
+                        <span
+                          style={{
+                            ...styles.statusBadge,
+                            backgroundColor: getStatusBg(unit.status),
+                            color: getStatusColor(unit.status),
+                          }}
                         >
-                          Edit
-                        </button>
-                      )}
+                          {(unit.status || '').toUpperCase()}
+                        </span>
+                        <select
+                          value={unit.status}
+                          onChange={(e) => handleStatusChange(unit.unit_id, e.target.value)}
+                          style={styles.statusSelect}
+                        >
+                          <option value="OCCUPIED">Occupied</option>
+                          <option value="AVAILABLE">Available</option>
+                          <option value="VACATING">Vacating</option>
+                          <option value="MAINTENANCE">Maintenance</option>
+                        </select>
+                        {editingUnit === unit.unit_id ? (
+                          <div style={{ display: 'flex', gap: '6px' }}>
+                            <button onClick={() => handleSaveUnit(unit.unit_id)} style={styles.saveBtn}>Save</button>
+                            <button onClick={() => setEditingUnit(null)} style={styles.cancelBtn}>Cancel</button>
+                          </div>
+                        ) : (
+                          <div style={{ display: 'flex', gap: '6px' }}>
+                            <button onClick={() => handleEditUnit(unit)} style={styles.editBtn}>Edit</button>
+                            <button onClick={() => handleDeleteUnit(unit.unit_id)} style={styles.deleteBtn}>Delete</button>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
@@ -738,104 +1002,43 @@ function handleSaveMonthlyBills() {
             <div>
               <div style={styles.card}>
                 <p style={styles.cardTitle}>
-                  Active Tenants (
-                  {tenants.filter((t) => t.status === 'active').length})
+                  Active Tenants ({tenants.filter((t) => t.status === 'active').length})
                 </p>
                 {tenants
                   .filter((t) => t.status === 'active')
                   .map((tenant) => (
-                    <div key={tenant.id} style={styles.tenantRow}>
-                      <div style={styles.unitBadge}>H{tenant.house}</div>
+                    <div key={tenant.user_id} style={styles.tenantRow}>
+                      <div style={styles.unitBadge}>H{tenant.unit_id}</div>
                       <div style={styles.tenantInfo}>
-                        {editingTenant === tenant.id ? (
+                        {editingTenant === tenant.user_id ? (
                           <div style={styles.editRow}>
                             <div style={styles.editField}>
                               <p style={styles.editLabel}>Name</p>
-                              <input
-                                value={editName}
-                                onChange={(e) => setEditName(e.target.value)}
-                                style={styles.editInput}
-                              />
+                              <input value={editName} onChange={(e) => setEditName(e.target.value)} style={styles.editInput} />
                             </div>
                             <div style={styles.editField}>
                               <p style={styles.editLabel}>Phone</p>
-                              <input
-                                value={editPhone}
-                                onChange={(e) => setEditPhone(e.target.value)}
-                                style={styles.editInput}
-                              />
-                            </div>
-                            <div style={styles.editField}>
-                              <p style={styles.editLabel}>Penalty Day</p>
-                              <select
-                                value={editPenaltyDate}
-                                onChange={(e) =>
-                                  setEditPenaltyDate(e.target.value)
-                                }
-                                style={styles.editInput}
-                              >
-                                <option value={5}>5th</option>
-                                <option value={10}>10th</option>
-                              </select>
-                            </div>
-                            <div style={styles.editField}>
-                              <p style={styles.editLabel}>Rate %</p>
-                              <select
-                                value={editPenaltyRate}
-                                onChange={(e) =>
-                                  setEditPenaltyRate(e.target.value)
-                                }
-                                style={styles.editInput}
-                              >
-                                <option value={5.0}>5%</option>
-                                <option value={8.0}>8%</option>
-                              </select>
+                              <input value={editPhone} onChange={(e) => setEditPhone(e.target.value)} style={styles.editInput} />
                             </div>
                           </div>
                         ) : (
                           <div>
-                            <p style={styles.tenantName}>{tenant.name}</p>
-                            <p style={styles.tenantDetails}>
-                              @{tenant.username} · {tenant.phone}
-                            </p>
-                            <p style={styles.tenantPenalty}>
-                              Penalty: {tenant.penalty_date}th (
-                              {tenant.penalty_rate}%) · Moved in:{' '}
-                              {tenant.move_in}
-                            </p>
+                            <p style={styles.tenantName}>{tenant.full_name}</p>
+                            <p style={styles.tenantDetails}>@{tenant.username} · {tenant.phone}</p>
+                            <p style={styles.tenantPenalty}>Joined: {tenant.created_at}</p>
                           </div>
                         )}
                       </div>
                       <div style={styles.tenantActions}>
-                        {editingTenant === tenant.id ? (
+                        {editingTenant === tenant.user_id ? (
                           <div style={{ display: 'flex', gap: '6px' }}>
-                            <button
-                              onClick={() => handleSaveTenant(tenant.id)}
-                              style={styles.saveBtn}
-                            >
-                              Save
-                            </button>
-                            <button
-                              onClick={() => setEditingTenant(null)}
-                              style={styles.cancelBtn}
-                            >
-                              Cancel
-                            </button>
+                            <button onClick={() => handleSaveTenant(tenant.user_id)} style={styles.saveBtn}>Save</button>
+                            <button onClick={() => setEditingTenant(null)} style={styles.cancelBtn}>Cancel</button>
                           </div>
                         ) : (
                           <div style={{ display: 'flex', gap: '6px' }}>
-                            <button
-                              onClick={() => handleEditTenant(tenant)}
-                              style={styles.editBtn}
-                            >
-                              Edit
-                            </button>
-                            <button
-                              onClick={() => handleVacate(tenant.id)}
-                              style={styles.vacateBtn}
-                            >
-                              Vacate
-                            </button>
+                            <button onClick={() => handleEditTenant(tenant)} style={styles.editBtn}>Edit</button>
+                            <button onClick={() => handleVacate(tenant.user_id)} style={styles.vacateBtn}>Vacate</button>
                           </div>
                         )}
                       </div>
@@ -845,48 +1048,21 @@ function handleSaveMonthlyBills() {
 
               <div style={styles.card}>
                 <p style={styles.cardTitle}>
-                  Vacated Tenants (
-                  {tenants.filter((t) => t.status === 'vacated').length})
+                  Vacated Tenants ({tenants.filter((t) => t.status === 'vacated').length})
                 </p>
                 {tenants.filter((t) => t.status === 'vacated').length === 0 ? (
                   <p style={styles.placeholderText}>No vacated tenants yet.</p>
                 ) : (
-                  tenants
-                    .filter((t) => t.status === 'vacated')
-                    .map((tenant) => (
-                      <div key={tenant.id} style={styles.tenantRow}>
-                        <div
-                          style={{
-                            ...styles.unitBadge,
-                            backgroundColor: '#f4f6f8',
-                            color: '#888',
-                          }}
-                        >
-                          H{tenant.house}
-                        </div>
-                        <div style={styles.tenantInfo}>
-                          <p style={{ ...styles.tenantName, color: '#888' }}>
-                            {tenant.name}
-                          </p>
-                          <p style={styles.tenantDetails}>
-                            @{tenant.username} · {tenant.phone}
-                          </p>
-                          <p style={styles.tenantPenalty}>
-                            Moved in: {tenant.move_in} · Vacated:{' '}
-                            {tenant.move_out}
-                          </p>
-                        </div>
-                        <span
-                          style={{
-                            ...styles.statusBadge,
-                            backgroundColor: '#f4f6f8',
-                            color: '#888',
-                          }}
-                        >
-                          VACATED
-                        </span>
+                  tenants.filter((t) => t.status === 'vacated').map((tenant) => (
+                    <div key={tenant.user_id} style={styles.tenantRow}>
+                      <div style={{ ...styles.unitBadge, backgroundColor: '#f4f6f8', color: '#888' }}>—</div>
+                      <div style={styles.tenantInfo}>
+                        <p style={{ ...styles.tenantName, color: '#888' }}>{tenant.full_name}</p>
+                        <p style={styles.tenantDetails}>@{tenant.username} · {tenant.phone}</p>
                       </div>
-                    ))
+                      <span style={{ ...styles.statusBadge, backgroundColor: '#f4f6f8', color: '#888' }}>VACATED</span>
+                    </div>
+                  ))
                 )}
               </div>
             </div>
@@ -895,98 +1071,64 @@ function handleSaveMonthlyBills() {
           {/* PAYMENTS */}
           {activePage === 'payments' && (
             <div>
-              {/* Summary Row */}
               <div style={styles.summaryRow}>
                 <div style={styles.summaryCard}>
-                  <p style={{ ...styles.summaryValue, color: '#1a7a4a' }}>
-                    Ksh {totalCollected.toLocaleString()}
-                  </p>
+                  <p style={{ ...styles.summaryValue, color: '#1a7a4a' }}>Ksh {totalCollected.toLocaleString()}</p>
                   <p style={styles.summaryLabel}>Total Collected</p>
                 </div>
                 <div style={styles.summaryCard}>
-                  <p style={{ ...styles.summaryValue, color: '#c0392b' }}>
-                    Ksh {totalOutstanding.toLocaleString()}
-                  </p>
+                  <p style={{ ...styles.summaryValue, color: '#c0392b' }}>Ksh {totalOutstanding.toLocaleString()}</p>
                   <p style={styles.summaryLabel}>Outstanding</p>
                 </div>
               </div>
 
-              {/* Filter Bar */}
               <div style={styles.card}>
                 <div style={styles.filterRow}>
                   <div style={styles.filterGroup}>
                     <p style={styles.filterLabel}>Status</p>
-                    <select
-                      value={filterStatus}
-                      onChange={(e) => setFilterStatus(e.target.value)}
-                      style={styles.filterSelect}
-                    >
+                    <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} style={styles.filterSelect}>
                       <option value="all">All Payments</option>
                       <option value="paid">Paid Only</option>
                       <option value="unpaid">Unpaid Only</option>
                     </select>
                   </div>
-
                   <div style={styles.filterGroup}>
                     <p style={styles.filterLabel}>Month</p>
-                    <select
-                      value={filterMonth}
-                      onChange={(e) => setFilterMonth(e.target.value)}
-                      style={styles.filterSelect}
-                    >
+                    <select value={filterMonth} onChange={(e) => setFilterMonth(e.target.value)} style={styles.filterSelect}>
                       <option value="all">All Months</option>
                       {availableMonths.map((month) => (
-                        <option key={month} value={month}>
-                          {month}
-                        </option>
+                        <option key={month} value={month}>{month}</option>
                       ))}
                     </select>
                   </div>
-
                   <div style={styles.filterGroup}>
                     <p style={styles.filterLabel}>Results</p>
-                    <p style={styles.filterCount}>
-                      {filteredPayments.length} payment
-                      {filteredPayments.length !== 1 ? 's' : ''}
-                    </p>
+                    <p style={styles.filterCount}>{filteredPayments.length} payment{filteredPayments.length !== 1 ? 's' : ''}</p>
                   </div>
                 </div>
               </div>
 
-              {/* Payments List */}
               <div style={styles.card}>
                 <p style={styles.cardTitle}>Payment Records</p>
-
                 {filteredPayments.length === 0 ? (
-                  <p style={styles.placeholderText}>
-                    No payments match your filter.
-                  </p>
+                  <p style={styles.placeholderText}>No payments match your filter.</p>
                 ) : (
                   filteredPayments.map((payment) => (
-                    <div key={payment.id} style={styles.paymentRowFull}>
-                      <div style={styles.unitBadge}>H{payment.house}</div>
-
+                    <div key={payment.payment_id} style={styles.paymentRowFull}>
+                      <div style={styles.unitBadge}>H{payment.unit_number}</div>
                       <div style={styles.paymentInfo}>
-                        <p style={styles.paymentTenant}>{payment.tenant}</p>
+                        <p style={styles.paymentTenant}>{payment.tenant_name}</p>
                         <p style={styles.paymentDate}>
-                          {payment.date}
-                          {payment.mpesa_code
-                            ? ` · Code: ${payment.mpesa_code}`
-                            : ' · No payment yet'}
+                          {payment.payment_date}{payment.mpesa_code ? ` · Code: ${payment.mpesa_code}` : ' · No payment yet'}
                         </p>
                       </div>
-
                       <div style={styles.paymentRight}>
-                        <p style={styles.paymentAmount}>
-                          Ksh {payment.amount.toLocaleString()}
-                        </p>
+                        <p style={styles.paymentAmount}>Ksh {payment.amount.toLocaleString()}</p>
                         <span
                           style={{
                             ...styles.paymentStatusBadge,
-                            backgroundColor:
-                              payment.status === 'paid' ? '#e8f5ee' : '#fdecea',
-                            color:
-                              payment.status === 'paid' ? '#1a7a4a' : '#c0392b',
+                            backgroundColor: payment.status === 'paid' ? '#e8f5ee' : '#fdecea',
+                            color: payment.status === 'paid' ? '#1a7a4a' : '#c0392b',
                           }}
                         >
                           {payment.status.toUpperCase()}
@@ -998,69 +1140,34 @@ function handleSaveMonthlyBills() {
               </div>
             </div>
           )}
+
           {/* EXPENSES */}
           {activePage === 'expenses' && (
             <div>
-              {/* Total Summary */}
               <div style={styles.card}>
                 <p style={styles.cardTitle}>Total Expenses This Month</p>
-                <p
-                  style={{
-                    fontSize: '32px',
-                    fontWeight: 700,
-                    color: '#c0392b',
-                    margin: '0 0 20px',
-                  }}
-                >
+                <p style={{ fontSize: '32px', fontWeight: 700, color: '#c0392b', margin: '0 0 20px' }}>
                   Ksh {totalExpenses.toLocaleString()}
                 </p>
-
-                {/* Category Breakdown */}
                 <div style={styles.categoryRow}>
                   {Object.entries(categoryTotals).map(([category, total]) => {
                     const catStyle = getCategoryStyle(category);
                     return (
-                      <div
-                        key={category}
-                        style={{
-                          ...styles.categoryCard,
-                          backgroundColor: catStyle.bg,
-                        }}
-                      >
-                        <p
-                          style={{
-                            ...styles.categoryName,
-                            color: catStyle.color,
-                          }}
-                        >
-                          {category}
-                        </p>
-                        <p
-                          style={{
-                            ...styles.categoryAmount,
-                            color: catStyle.color,
-                          }}
-                        >
-                          Ksh {total.toLocaleString()}
-                        </p>
+                      <div key={category} style={{ ...styles.categoryCard, backgroundColor: catStyle.bg }}>
+                        <p style={{ ...styles.categoryName, color: catStyle.color }}>{category}</p>
+                        <p style={{ ...styles.categoryAmount, color: catStyle.color }}>Ksh {total.toLocaleString()}</p>
                       </div>
                     );
                   })}
                 </div>
               </div>
 
-              {/* Add New Expense Form */}
               <div style={styles.card}>
                 <p style={styles.cardTitle}>Record New Expense</p>
-
                 <div style={styles.expenseFormRow}>
                   <div style={styles.filterGroup}>
                     <p style={styles.filterLabel}>Category</p>
-                    <select
-                      value={newCategory}
-                      onChange={(e) => setNewCategory(e.target.value)}
-                      style={styles.filterSelect}
-                    >
+                    <select value={newCategory} onChange={(e) => setNewCategory(e.target.value)} style={styles.filterSelect}>
                       <option value="Repairs">Repairs</option>
                       <option value="Cleaning">Cleaning</option>
                       <option value="Utilities">Utilities</option>
@@ -1068,7 +1175,6 @@ function handleSaveMonthlyBills() {
                       <option value="Other">Other</option>
                     </select>
                   </div>
-
                   <div style={{ ...styles.filterGroup, flex: 1 }}>
                     <p style={styles.filterLabel}>Description</p>
                     <input
@@ -1076,14 +1182,9 @@ function handleSaveMonthlyBills() {
                       value={newDescription}
                       onChange={(e) => setNewDescription(e.target.value)}
                       placeholder="e.g. Roof repair unit 3"
-                      style={{
-                        ...styles.filterSelect,
-                        width: '100%',
-                        boxSizing: 'border-box',
-                      }}
+                      style={{ ...styles.filterSelect, width: '100%', boxSizing: 'border-box' }}
                     />
                   </div>
-
                   <div style={styles.filterGroup}>
                     <p style={styles.filterLabel}>Amount (Ksh)</p>
                     <input
@@ -1095,61 +1196,31 @@ function handleSaveMonthlyBills() {
                       min="1"
                     />
                   </div>
-
                   <div style={styles.filterGroup}>
                     <p style={styles.filterLabel}>&nbsp;</p>
-                    <button
-                      onClick={handleAddExpense}
-                      style={styles.addExpenseBtn}
-                    >
-                      + Record
-                    </button>
+                    <button onClick={handleAddExpense} style={styles.addExpenseBtn}>+ Record</button>
                   </div>
                 </div>
               </div>
 
-              {/* Expenses List */}
               <div style={styles.card}>
-                <p style={styles.cardTitle}>
-                  Expense Records ({expenses.length})
-                </p>
-
+                <p style={styles.cardTitle}>Expense Records ({expenses.length})</p>
                 {expenses.length === 0 ? (
-                  <p style={styles.placeholderText}>
-                    No expenses recorded yet.
-                  </p>
+                  <p style={styles.placeholderText}>No expenses recorded yet.</p>
                 ) : (
                   expenses.map((expense) => {
                     const catStyle = getCategoryStyle(expense.category);
                     return (
-                      <div key={expense.id} style={styles.expenseRow}>
-                        <span
-                          style={{
-                            ...styles.categoryBadge,
-                            backgroundColor: catStyle.bg,
-                            color: catStyle.color,
-                          }}
-                        >
+                      <div key={expense.expense_id} style={styles.expenseRow}>
+                        <span style={{ ...styles.categoryBadge, backgroundColor: catStyle.bg, color: catStyle.color }}>
                           {expense.category}
                         </span>
-
                         <div style={styles.expenseInfo}>
-                          <p style={styles.expenseDescription}>
-                            {expense.description}
-                          </p>
-                          <p style={styles.expenseDate}>{expense.date}</p>
+                          <p style={styles.expenseDescription}>{expense.description}</p>
+                          <p style={styles.expenseDate}>{expense.expense_date}</p>
                         </div>
-
-                        <p style={styles.expenseAmount}>
-                          Ksh {expense.amount.toLocaleString()}
-                        </p>
-
-                        <button
-                          onClick={() => handleDeleteExpense(expense.id)}
-                          style={styles.deleteBtn}
-                        >
-                          Delete
-                        </button>
+                        <p style={styles.expenseAmount}>Ksh {expense.amount.toLocaleString()}</p>
+                        <button onClick={() => handleDeleteExpense(expense.expense_id)} style={styles.deleteBtn}>Delete</button>
                       </div>
                     );
                   })
@@ -1157,36 +1228,22 @@ function handleSaveMonthlyBills() {
               </div>
             </div>
           )}
+
           {/* MESSAGES */}
           {activePage === 'messages' && (
             <div>
-              {/* Send Message Form */}
               <div style={styles.card}>
                 <p style={styles.cardTitle}>Send SMS Message</p>
-
-                {/* Recipient */}
                 <div style={styles.filterGroup}>
                   <p style={styles.filterLabel}>Send To</p>
-                  <select
-                    value={recipient}
-                    onChange={(e) => setRecipient(e.target.value)}
-                    style={styles.filterSelect}
-                  >
-                    <option value="all">
-                      All Tenants (
-                      {tenants.filter((t) => t.status === 'active').length})
-                    </option>
-                    {tenants
-                      .filter((t) => t.status === 'active')
-                      .map((t) => (
-                        <option key={t.id} value={t.id}>
-                          {t.name} - House {t.house}
-                        </option>
-                      ))}
+                  <select value={recipient} onChange={(e) => setRecipient(e.target.value)} style={styles.filterSelect}>
+                    <option value="all">All Tenants ({tenants.filter((t) => t.status === 'active').length})</option>
+                    {tenants.filter((t) => t.status === 'active').map((t) => (
+                      <option key={t.user_id} value={t.user_id}>{t.full_name} - House {t.unit_id}</option>
+                    ))}
                   </select>
                 </div>
 
-                {/* Quick Templates */}
                 <div style={{ marginTop: '20px', marginBottom: '8px' }}>
                   <p style={styles.filterLabel}>Quick Templates</p>
                 </div>
@@ -1202,11 +1259,9 @@ function handleSaveMonthlyBills() {
                       onClick={() => handleTemplateSelect(t.key)}
                       style={{
                         ...styles.templateBtn,
-                        backgroundColor:
-                          messageTemplate === t.key ? '#1a7a4a' : '#f4f6f8',
+                        backgroundColor: messageTemplate === t.key ? '#1a7a4a' : '#f4f6f8',
                         color: messageTemplate === t.key ? 'white' : '#555',
-                        border:
-                          messageTemplate === t.key ? 'none' : '1px solid #ddd',
+                        border: messageTemplate === t.key ? 'none' : '1px solid #ddd',
                       }}
                     >
                       {t.label}
@@ -1214,7 +1269,6 @@ function handleSaveMonthlyBills() {
                   ))}
                 </div>
 
-                {/* Message Text */}
                 <div style={{ marginTop: '20px' }}>
                   <p style={styles.filterLabel}>Message</p>
                   <textarea
@@ -1224,41 +1278,29 @@ function handleSaveMonthlyBills() {
                     rows={4}
                     style={styles.messageTextarea}
                   />
-                  <p
-                    style={{
-                      fontSize: '12px',
-                      margin: '4px 0 0',
-                      textAlign: 'right',
-                      color: messageText.length > 160 ? '#c0392b' : '#888',
-                      fontWeight: messageText.length > 160 ? 700 : 400,
-                    }}
-                  >
-                    {messageText.length}/160
-                    {messageText.length > 160 && ' — Over SMS limit!'}
+                  <p style={{
+                    fontSize: '12px', margin: '4px 0 0', textAlign: 'right',
+                    color: messageText.length > 160 ? '#c0392b' : '#888',
+                    fontWeight: messageText.length > 160 ? 700 : 400,
+                  }}>
+                    {messageText.length}/160{messageText.length > 160 && ' — Over SMS limit!'}
                   </p>
                 </div>
 
-                {/* Send Button */}
-                <button onClick={handleSendMessage} style={styles.sendBtn}>
-                  Send SMS
-                </button>
+                <button onClick={handleSendMessage} style={styles.sendBtn}>Send SMS</button>
               </div>
 
-              {/* Message History */}
               <div style={styles.card}>
-                <p style={styles.cardTitle}>
-                  Message History ({messageHistory.length})
-                </p>
-
-                {messageHistory.length === 0 ? (
+                <p style={styles.cardTitle}>Message History ({messageHistory.length})</p>
+               {messageHistory.length === 0 ? (
                   <p style={styles.placeholderText}>No messages sent yet.</p>
                 ) : (
                   messageHistory.map((msg) => (
-                    <div key={msg.id} style={styles.messageRow}>
+                    <div key={msg.message_id} style={styles.messageRow}>
                       <div style={styles.messageInfo}>
                         <div style={styles.messageTopRow}>
                           <p style={styles.messageRecipient}>{msg.recipient}</p>
-                          <p style={styles.messageDate}>{msg.date}</p>
+                          <p style={styles.messageDate}>{msg.sent_at}</p>
                         </div>
                         <p style={styles.messageContent}>{msg.content}</p>
                       </div>
@@ -1275,23 +1317,21 @@ function handleSaveMonthlyBills() {
             <div>
               <div style={styles.card}>
                 <p style={styles.cardTitle}>Set water bills -July 2026</p>
-                <p style={{ fontSize:'12px', color:'#945', margin: '0,0,20px'}}>
+                <p style={{ fontSize: '12px', color: '#945', margin: '0 0 20px' }}>
                   Set the water Bill for House 7 and House 8 before tenants pay this month
                 </p>
 
                 <div style={styles.waterCardsRow}>
-
-                  {(() =>{
-                    const unit7 = units.find( u => u.number ===7);
-                    const tenant7 = tenants.find(t => t.house === 7 && t.status === 'active');
-
-                    return(
-                      <div style ={styles.waterCard}>
-                        <div style ={styles.waterCardHeader}>
-                          <div style ={styles.unitBadge}>H7</div>
+                  {(() => {
+                    const unit7 = units.find(u => u.unit_number === 7);
+                    const tenant7 = tenants.find(t => t.unit_id === 7 && t.status === 'active');
+                    return (
+                      <div style={styles.waterCard}>
+                        <div style={styles.waterCardHeader}>
+                          <div style={styles.unitBadge}>H7</div>
                           <div>
-                            <p style = {styles.waterTenantName}>{tenant7?.name || 'no tenant'}</p>
-                            <p style ={styles.waterCurrentBill}>
+                            <p style={styles.waterTenantName}>{tenant7?.full_name || 'no tenant'}</p>
+                            <p style={styles.waterCurrentBill}>
                               Current: Ksh {(unit7?.water_bill || 0).toLocaleString()}
                             </p>
                           </div>
@@ -1305,28 +1345,21 @@ function handleSaveMonthlyBills() {
                             style={styles.waterInput}
                             min='2'
                           />
-                          <button
-                            onClick={() => handleSaveWaterBill(7, newWater7)}
-                            style={styles.waterSaveBtn}
-                          >
-                            Save
-                          </button>
+                          <button onClick={() => handleSaveWaterBill(7, newWater7)} style={styles.waterSaveBtn}>Save</button>
                         </div>
                       </div>
                     );
-
                   })()}
-                  {(() =>{
-                    const unit8 = units.find( u => u.number ===8);
-                    const tenant8 = tenants.find(t => t.house === 8 && t.status === 'active');
-
-                    return(
-                      <div style ={styles.waterCard}>
-                        <div style ={styles.waterCardHeader}>
-                          <div style ={styles.unitBadge}>H8</div>
+                  {(() => {
+                    const unit8 = units.find(u => u.unit_number === 8);
+                    const tenant8 = tenants.find(t => t.unit_id === 8 && t.status === 'active');
+                    return (
+                      <div style={styles.waterCard}>
+                        <div style={styles.waterCardHeader}>
+                          <div style={styles.unitBadge}>H8</div>
                           <div>
-                            <p style = {styles.waterTenantName}>{tenant8?.name || 'no tenant'}</p>
-                            <p style ={styles.waterCurrentBill}>
+                            <p style={styles.waterTenantName}>{tenant8?.full_name || 'no tenant'}</p>
+                            <p style={styles.waterCurrentBill}>
                               Current: Ksh {(unit8?.water_bill || 0).toLocaleString()}
                             </p>
                           </div>
@@ -1340,51 +1373,30 @@ function handleSaveMonthlyBills() {
                             style={styles.waterInput}
                             min='2'
                           />
-                          <button
-                            onClick={() => handleSaveWaterBill(8, newWater8)}
-                            style={styles.waterSaveBtn}
-                          >
-                            Save
-                          </button>
+                          <button onClick={() => handleSaveWaterBill(8, newWater8)} style={styles.waterSaveBtn}>Save</button>
                         </div>
                       </div>
                     );
-
                   })()}
 
-                  <button
-                    onClick={handleSaveMonthlyBills}
-                    style={styles.saveMonthBtn}
-                  >
-                    Save Monthly Bills
-                  </button>
+                  <button onClick={handleSaveMonthlyBills} style={styles.saveMonthBtn}>Save Monthly Bills</button>
 
                   <div style={styles.card}>
-                    <p style={styles.cardTitle}>
-                       Water Bill History
-                    </p>
+                    <p style={styles.cardTitle}>Water Bill History</p>
                     <div style={styles.waterTableHeader}>
                       <p style={{ ...styles.waterTableCell, fontWeight: 700 }}>Month</p>
                       <p style={{ ...styles.waterTableCell, fontWeight: 700, textAlign: 'right' }}>House 7</p>
                       <p style={{ ...styles.waterTableCell, fontWeight: 700, textAlign: 'right' }}>House 8</p>
                       <p style={{ ...styles.waterTableCell, fontWeight: 700, textAlign: 'right' }}>Total</p>
                     </div>
-
-                    {waterHistory.map ((record) =>(
+                    {waterHistory.map((record) => (
                       <div key={record.id} style={styles.waterTableRow}>
                         <p style={styles.waterTableCell}>{record.month}</p>
-                        <p style={{...styles.waterTableCell, textAlign:'right', color:'#5635'}}>
-                          Ksh {record.house7.toLocaleString()}
-                        </p>
-                        <p style={{...styles.waterTableCell, textAlign:'right', color:'#5635'}}>
-                          Ksh {record.house8.toLocaleString()}
-                        </p>
-                        <p style={{...styles.waterTableCell, textAlign:'right', color:'#5635'}}>
-                          Ksh {(record.house7 + record.house8).toLocaleString()}
-                        </p>
+                        <p style={{ ...styles.waterTableCell, textAlign: 'right', color: '#5635' }}>Ksh {record.house7.toLocaleString()}</p>
+                        <p style={{ ...styles.waterTableCell, textAlign: 'right', color: '#5635' }}>Ksh {record.house8.toLocaleString()}</p>
+                        <p style={{ ...styles.waterTableCell, textAlign: 'right', color: '#5635' }}>Ksh {(record.house7 + record.house8).toLocaleString()}</p>
                       </div>
                     ))}
-
                   </div>
                 </div>
               </div>
@@ -1408,7 +1420,6 @@ const GREEN = '#1a7a4a';
 const DARK_GREEN = '#145f38';
 
 const styles = {
-  // ---- PAGE LAYOUT ----
   page: {
     display: 'flex',
     flexDirection: 'column',
@@ -1422,8 +1433,6 @@ const styles = {
     justifyContent: 'center',
     height: '100vh',
   },
-
-  // ---- HEADER ----
   header: {
     backgroundColor: GREEN,
     color: 'white',
@@ -1461,8 +1470,6 @@ const styles = {
     fontSize: '14px',
     cursor: 'pointer',
   },
-
-  // ---- MOBILE NAV ----
   mobileNav: {
     display: 'flex',
     overflowX: 'auto',
@@ -1486,8 +1493,6 @@ const styles = {
     fontSize: '11px',
     marginLeft: '6px',
   },
-
-  // ---- BODY ----
   bodyDesktop: {
     display: 'flex',
     flex: 1,
@@ -1497,8 +1502,6 @@ const styles = {
     flexDirection: 'column',
     flex: 1,
   },
-
-  // ---- SIDEBAR ----
   sidebar: {
     width: '240px',
     minWidth: '240px',
@@ -1521,8 +1524,6 @@ const styles = {
     gap: '12px',
     transition: 'background 0.2s',
   },
-
-  // ---- MAIN CONTENT ----
   mainDesktop: {
     flex: 1,
     padding: '32px',
@@ -1537,8 +1538,6 @@ const styles = {
     gap: '20px',
     flexWrap: 'wrap',
   },
-
-  // ---- SUMMARY CARDS ----
   summaryRow: {
     display: 'flex',
     flexWrap: 'wrap',
@@ -1565,8 +1564,6 @@ const styles = {
     textTransform: 'uppercase',
     letterSpacing: '1px',
   },
-
-  // ---- CARDS ----
   card: {
     background: 'white',
     borderRadius: '16px',
@@ -1582,8 +1579,6 @@ const styles = {
     textTransform: 'uppercase',
     letterSpacing: '1px',
   },
-
-  // ---- QUICK ACTIONS ----
   actionsRow: {
     display: 'flex',
     gap: '12px',
@@ -1599,8 +1594,6 @@ const styles = {
     fontWeight: 600,
     cursor: 'pointer',
   },
-
-  // ---- PAYMENT ROWS ----
   paymentRow: {
     display: 'flex',
     justifyContent: 'space-between',
@@ -1632,8 +1625,6 @@ const styles = {
     margin: 0,
     textAlign: 'right',
   },
-
-  // ---- PENDING ROWS ----
   pendingRow: {
     display: 'flex',
     justifyContent: 'space-between',
@@ -1673,8 +1664,6 @@ const styles = {
     fontWeight: 600,
     cursor: 'pointer',
   },
-
-  // ---- UNIT ROWS ----
   unitRow: {
     display: 'flex',
     alignItems: 'center',
@@ -1736,8 +1725,6 @@ const styles = {
     backgroundColor: 'white',
     cursor: 'pointer',
   },
-
-  // ---- EDIT FIELDS ----
   editRow: {
     display: 'flex',
     gap: '16px',
@@ -1791,8 +1778,6 @@ const styles = {
     fontSize: '13px',
     cursor: 'pointer',
   },
-
-  // ---- TENANT ROWS ----
   tenantRow: {
     display: 'flex',
     alignItems: 'flex-start',
@@ -1837,8 +1822,6 @@ const styles = {
     fontWeight: 600,
     cursor: 'pointer',
   },
-
-  // ---- MISC ----
   sectionHeader: {
     display: 'flex',
     justifyContent: 'space-between',
@@ -2064,89 +2047,89 @@ const styles = {
     whiteSpace: 'nowrap',
   },
   waterCardsRow: {
-  display: 'flex',
-  gap: '20px',
-  flexWrap: 'wrap',
-  marginBottom: '24px',
-},
-waterCard: {
-  flex: 1,
-  minWidth: '200px',
-  backgroundColor: '#f8fafc',
-  borderRadius: '14px',
-  padding: '20px',
-  border: '1px solid #e8f4fd',
-},
-waterCardHeader: {
-  display: 'flex',
-  alignItems: 'center',
-  gap: '12px',
-  marginBottom: '16px',
-},
-waterTenantName: {
-  fontSize: '15px',
-  fontWeight: 600,
-  margin: '0 0 4px',
-  color: '#1a1a1a',
-},
-waterCurrentBill: {
-  fontSize: '13px',
-  color: '#2980b9',
-  margin: 0,
-  fontWeight: 500,
-},
-waterInputRow: {
-  display: 'flex',
-  gap: '10px',
-  alignItems: 'center',
-},
-waterInput: {
-  flex: 1,
-  padding: '10px 14px',
-  border: '1.5px solid #ddd',
-  borderRadius: '8px',
-  fontSize: '14px',
-  outline: 'none',
-},
-waterSaveBtn: {
-  padding: '10px 18px',
-  backgroundColor: '#1a7a4a',
-  color: 'white',
-  border: 'none',
-  borderRadius: '8px',
-  fontSize: '13px',
-  fontWeight: 600,
-  cursor: 'pointer',
-},
-saveMonthBtn: {
-  width: '100%',
-  padding: '14px',
-  backgroundColor: '#2980b9',
-  color: 'white',
-  border: 'none',
-  borderRadius: '12px',
-  fontSize: '15px',
-  fontWeight: 600,
-  cursor: 'pointer',
-},
-waterTableHeader: {
-  display: 'flex',
-  padding: '10px 0',
-  borderBottom: '2px solid #f0f0f0',
-  marginBottom: '4px',
-},
-waterTableRow: {
-  display: 'flex',
-  padding: '12px 0',
-  borderBottom: '1px solid #f0f0f0',
-  alignItems: 'center',
-},
-waterTableCell: {
-  flex: 1,
-  fontSize: '14px',
-  color: '#555',
-  margin: 0,
-},
+    display: 'flex',
+    gap: '20px',
+    flexWrap: 'wrap',
+    marginBottom: '24px',
+  },
+  waterCard: {
+    flex: 1,
+    minWidth: '200px',
+    backgroundColor: '#f8fafc',
+    borderRadius: '14px',
+    padding: '20px',
+    border: '1px solid #e8f4fd',
+  },
+  waterCardHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    marginBottom: '16px',
+  },
+  waterTenantName: {
+    fontSize: '15px',
+    fontWeight: 600,
+    margin: '0 0 4px',
+    color: '#1a1a1a',
+  },
+  waterCurrentBill: {
+    fontSize: '13px',
+    color: '#2980b9',
+    margin: 0,
+    fontWeight: 500,
+  },
+  waterInputRow: {
+    display: 'flex',
+    gap: '10px',
+    alignItems: 'center',
+  },
+  waterInput: {
+    flex: 1,
+    padding: '10px 14px',
+    border: '1.5px solid #ddd',
+    borderRadius: '8px',
+    fontSize: '14px',
+    outline: 'none',
+  },
+  waterSaveBtn: {
+    padding: '10px 18px',
+    backgroundColor: '#1a7a4a',
+    color: 'white',
+    border: 'none',
+    borderRadius: '8px',
+    fontSize: '13px',
+    fontWeight: 600,
+    cursor: 'pointer',
+  },
+  saveMonthBtn: {
+    width: '100%',
+    padding: '14px',
+    backgroundColor: '#2980b9',
+    color: 'white',
+    border: 'none',
+    borderRadius: '12px',
+    fontSize: '15px',
+    fontWeight: 600,
+    cursor: 'pointer',
+  },
+  waterTableHeader: {
+    display: 'flex',
+    padding: '10px 0',
+    borderBottom: '2px solid #f0f0f0',
+    marginBottom: '4px',
+  },
+  waterTableRow: {
+    display: 'flex',
+    padding: '12px 0',
+    borderBottom: '1px solid #f0f0f0',
+    alignItems: 'center',
+  },
+  waterTableCell: {
+    flex: 1,
+    fontSize: '14px',
+    color: '#555',
+    margin: 0,
+  },
 };
 
 export default AdminDashboard;

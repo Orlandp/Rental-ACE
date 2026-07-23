@@ -3,11 +3,13 @@ import React, { useState, useEffect} from 'react';
 function SuccessPage() {
 
      const params = new URLSearchParams(window.location.search);
-     const house = params.get('house') || '';
-     const property = params.get('property') || '1';
+     const receiptNo = params.get('receipt') || '';
+     const unit = params.get('unit') || '';
+     const tenant = params.get('tenant') || '';
      const amount = params.get('amount') || '';
-     const mpesaCode = params.get('code') || 'pending confirmation';
-     
+     const mpesaCode = params.get('mpesa') || 'pending confirmation';
+     const month = params.get('month') || '';
+
      const [countdown, setCountdown] = useState(10);
 
      useEffect (() => { 
@@ -15,35 +17,53 @@ function SuccessPage() {
             setCountdown ((prev) => {
                 if (prev <= 1){
                     clearInterval(timer);
-                    window.location.href = '/pay?property=' + property;
+                    window.location.href = '/pay?unit=' + unit;
                     return 0;
                 }
                 return prev -1;
             });
      },1000);
      return () => clearInterval(timer);
-     }, [property]);
+     }, [unit]);
 
      return (
-        <div style={styles.card}>
-            <div style={styles.page}>
+        <div style={styles.page}>
+            <div style={styles.card}>
                 <div style={styles.iconCircle}>✓</div>
                 <h2 style={styles.title}>payment confirmed</h2>
                 <p style={styles.subtitle}>
                     Your payment has been confirmed
                 </p>
                 <div style={styles.detailCard}>
-                    {house && (
+                    {receiptNo && (
+                        <div style={styles.detailRow}>
+                            <p style={styles.detailLabel}>Receipt No</p>
+                            <p style={styles.detailValue}>{receiptNo}</p>
+                        </div>
+                    )}
+                    {tenant && (
+                        <div style={styles.detailRow}>
+                            <p style={styles.detailLabel}>Tenant</p>
+                            <p style={styles.detailValue}>{tenant}</p>
+                        </div>
+                    )}
+                    {unit && (
                         <div style={styles.detailRow}>
                             <p style={styles.detailLabel}>House</p>
-                            <p style={styles.detailValue}>House{house}</p> 
+                            <p style={styles.detailValue}>House {unit}</p>
+                        </div>
+                    )}
+                    {month && (
+                        <div style={styles.detailRow}>
+                            <p style={styles.detailLabel}>For Month</p>
+                            <p style={styles.detailValue}>{month}</p>
                         </div>
                     )}
                     {amount && (
                         <div style={styles.detailRow}>
                             <p style={styles.detailLabel}>Amount Paid</p>
                             <p style={styles.detailValue}>
-                                ksh{parseInt(amount).toLocaleString()}
+                                Ksh {parseInt(amount).toLocaleString()}
                             </p>
                         </div>
                     )}
@@ -56,15 +76,15 @@ function SuccessPage() {
                     <div style={styles.detailRow}>
                         <p style={styles.detailLabel}>Status</p>
                         <p style={{...styles.detailValue, color:'#1a4afa'}}>
-                            Confirmed,Received
+                            Confirmed, Received
                         </p>
                     </div>
                 </div>
                 <div style={styles.messages}>
-                    An sms confirmation will be send through your phone.
+                    An SMS confirmation has been sent to your phone.
                 </div>
                 <button 
-                  onClick={() => window.location.href = '/pay?property' + property}
+                  onClick={() => window.location.href = '/pay?unit=' + unit}
                   style={styles.backBtn}
                 >
                     Make Another Payment
@@ -86,7 +106,7 @@ function SuccessPage() {
 }
 
 const styles = {
-    page: {
+  page: {
     minHeight: '100vh',
     backgroundColor: '#f4f6f8',
     display: 'flex',
@@ -94,15 +114,17 @@ const styles = {
     justifyContent: 'center',
     padding: '24px',
     fontFamily: 'Segoe UI, Arial, sans-serif',
+    boxSizing: 'border-box',
   },
   card: {
     background: 'white',
     borderRadius: '24px',
-    padding: '48px 40px',
+    padding: '40px 32px',
     width: '100%',
     maxWidth: '440px',
     boxShadow: '0 4px 24px rgba(0,0,0,0.08)',
-     textAlign: 'center',
+    textAlign: 'center',
+    boxSizing: 'border-box',
   },
   iconCircle: {
     width: '80px',
@@ -118,10 +140,11 @@ const styles = {
     margin: '0 auto 24px',
   },
   title: {
-    fontSize: '28px',
+    fontSize: '26px',
     fontWeight: 700,
     color: '#1a1a1a',
     margin: '0 0 10px',
+    textTransform: 'capitalize',
   },
   subtitle: {
     fontSize: '15px',
@@ -134,7 +157,7 @@ const styles = {
     borderRadius: '14px',
     padding: '20px',
     marginBottom: '20px',
-    textAlign:'left',
+    textAlign: 'left',
   },
   detailRow: {
     display: 'flex',
@@ -142,18 +165,21 @@ const styles = {
     alignItems: 'center',
     padding: '10px 0',
     borderBottom: '1px solid #f0f0f0',
+    gap: '12px',
   },
   detailLabel: {
     fontSize: '13px',
     color: '#888',
     margin: 0,
     fontWeight: 500,
+    whiteSpace: 'nowrap',
   },
-    detailValue: {
+  detailValue: {
     fontSize: '14px',
     color: '#1a1a1a',
     margin: 0,
     fontWeight: 600,
+    textAlign: 'right',
   },
   messages: {
     backgroundColor: '#e8f5ee',
@@ -176,6 +202,7 @@ const styles = {
     fontWeight: 600,
     cursor: 'pointer',
     marginBottom: '12px',
+    boxSizing: 'border-box',
   },
   loginBtn: {
     width: '100%',
@@ -188,11 +215,13 @@ const styles = {
     fontWeight: 600,
     cursor: 'pointer',
     marginBottom: '20px',
+    boxSizing: 'border-box',
   },
   countdown: {
     fontSize: '13px',
     color: '#aaa',
     margin: 0,
   },
-}; 
+};
+
 export default SuccessPage;
