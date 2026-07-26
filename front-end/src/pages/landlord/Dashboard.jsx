@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import useIdleLogout from '../../hooks/useIdleLogout';
 
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -6,6 +7,8 @@ const MONTH_NAMES = [
 ];
 
 function LandlordDashboard() {
+
+  useIdleLogout(5);
 
   const [landlord, setLandlord]         = useState(null);
   const [units, setUnits]               = useState([]);

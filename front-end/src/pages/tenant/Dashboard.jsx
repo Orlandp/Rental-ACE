@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import useIdleLogout from '../../hooks/useIdleLogout';
 
 function TenantDashboard() {
 
+  useIdleLogout(5);
+  
   const [tenant, setTenant]     = useState(null);
   const [payments, setPayments] = useState([]);
   const [loading, setLoading]   = useState(true);
