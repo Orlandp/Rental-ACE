@@ -117,3 +117,55 @@ def vacate_tenant(user_id):
     conn.close()
 
     return jsonify({'message': f"{user['full_name']} has been vacated"}), 200
+
+@tenants_bp.route('/api/tenants/me/summary', methods=['GET'])
+@role_required('tenant')
+def my_summary():
+    from routes.payments import calculate_penalty
+    from datetime import datetime
+
+    conn = get_db()
+
+    user = conn.execute(
+        'SELECT * FROM users WHERE user_id = ?', (session['user_id'],)
+    ).fetchone()
+
+    unit = conn.execute(
+        'SELECT * FROM units WHERE unit_id = ?', (user['unit_id'],)
+    ).fetchone()
+
+    prop = conn.execute(
+        'SELECT * FROM properties WHERE property_id = ?', (unit['property_id'],)
+    ).fetchone()
+
+    now = datetime.now()
+    current_month = now.strftime('%B %Y')
+    today_str = now.strftime('%Y-%m-%d')
+
+    already_paid = conn.execute(
+        "SELECT * FROM payments WHERE tenant_id = ? AND unit_id = ? AND month = ?",
+        (session['user_id'], unit['unit_id'], current_month)
+    ).fetchone()
+
+    conn.close()
+
+    penalty = 0
+    if not already_paid:
+        penalty = calculate_penalty(unit['rent_amount'], today_str)
+
+    total_due = 0 if already_paid else unit['rent_amount'] + penalty
+
+    return jsonify({
+        'full_name': user['full_name'],
+        'phone': user['phone'],
+        'unit_number': unit['unit_number'],
+        'rent_amount': unit['rent_amount'],
+        'has_water_bill': unit['has_water_bill'],
+        'water_bill': unit['water_bill'],
+        'property_name': prop['name'],
+        'location': prop['location'],
+        'current_month': current_month,
+        'already_paid_this_month': bool(already_paid),
+        'penalty': penalty,
+        'total_due': total_due,
+    }), 200
