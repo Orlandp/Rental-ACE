@@ -1,28 +1,5 @@
 import React, { useState, useEffect } from 'react';
 
-const mockTenant = {
-  name: 'James Orlando',
-  phone: '0712000001',
-  house: 3,
-  property: 'Ace Apartments',
-  location: 'Eldoret',
-  rent_amount: 18000,
-  balance: 4000,
-  penalty_date: 5,
-  penalty_rate: 5.0,
-  penalty_amount: 900,
-};
-
-const mockPayments = [
-  { id: 1, month: 'July 2026',     amount: 18000, mpesa_code: 'QHX7234KLP', status: 'paid'   },
-  { id: 2, month: 'June 2026',     amount: 19800, mpesa_code: 'RKL8923MNP', status: 'paid'   },
-  { id: 3, month: 'May 2026',      amount: 18000, mpesa_code: 'PLM3421QRS', status: 'paid'   },
-  { id: 4, month: 'April 2026',    amount: 18000, mpesa_code: 'NKJ9821WXY', status: 'paid'   },
-  { id: 5, month: 'March 2026',    amount: 18000, mpesa_code: 'MHG4532ABC', status: 'paid'   },
-  { id: 6, month: 'February 2026', amount: 18000, mpesa_code: 'LKP2341DEF', status: 'paid'   },
-  { id: 7, month: 'January 2026',  amount: 0,     mpesa_code: null,          status: 'unpaid' },
-];
-
 function TenantDashboard() {
 
   const [tenant, setTenant]     = useState(null);
@@ -33,10 +10,23 @@ function TenantDashboard() {
   useEffect(() => {
     async function loadData() {
       try {
-        setTenant(mockTenant);
-        setPayments(mockPayments);
+        const summaryRes = await fetch('http://localhost:5000/api/tenants/me/summary', {
+          credentials: 'include',
+        });
+        const summaryData = await summaryRes.json();
+        if (!summaryRes.ok) {
+          setError(summaryData.error || 'Could not load your details.');
+          return;
+        }
+        setTenant(summaryData);
+
+        const paymentsRes = await fetch('http://localhost:5000/api/payments', {
+          credentials: 'include',
+        });
+        const paymentsData = await paymentsRes.json();
+        if (paymentsRes.ok) setPayments(paymentsData);
       } catch (err) {
-        setError('Could not load your details.');
+        setError('Could not reach the server.');
       } finally {
         setLoading(false);
       }
@@ -49,7 +39,7 @@ function TenantDashboard() {
   }
 
   function handlePay() {
-    window.location.href = '/pay?property=1';
+    window.location.href = `/pay?unit=${tenant.unit_number}`;
   }
 
   function getStatusColor(status) {
@@ -61,7 +51,7 @@ function TenantDashboard() {
 
   function getTotal() {
     if (!tenant) return 0;
-    return tenant.rent_amount + tenant.balance + tenant.penalty_amount;
+    return tenant.total_due;
   }
 
   if (loading) {
@@ -88,9 +78,9 @@ function TenantDashboard() {
         <div style={styles.headerTop}>
           <div>
             <p style={styles.headerLabel}>Tenant</p>
-            <h2 style={styles.headerName}>{tenant.name}</h2>
+            <h2 style={styles.headerName}>{tenant.full_name}</h2>
             <p style={styles.headerSub}>
-              House {tenant.house} · {tenant.property}
+              House {tenant.unit_number} · {tenant.property_name}
             </p>
           </div>
           <button onClick={handleLogout} style={styles.logoutBtn}>
@@ -103,37 +93,45 @@ function TenantDashboard() {
       <div style={styles.card}>
         <p style={styles.cardTitle}>Current Balance</p>
 
-        <div style={styles.balanceRow}>
-          <div style={styles.balanceCol}>
-            <p style={styles.balanceLabel}>Rent Due</p>
-            <p style={styles.balanceValue}>
-              Ksh {tenant.rent_amount.toLocaleString()}
-            </p>
+        {tenant.already_paid_this_month ? (
+          <div style={{ ...styles.penaltyBadge, backgroundColor: '#e8f5ee', border: '1px solid #b8dfc9', color: '#1a7a4a' }}>
+            ✓ Rent for {tenant.current_month} has been paid. You're all clear!
           </div>
-          <div style={styles.divider} />
-          <div style={styles.balanceCol}>
-            <p style={styles.balanceLabel}>Arrears</p>
-            <p style={{
-              ...styles.balanceValue,
-              color: tenant.balance > 0 ? '#c0392b' : '#1a7a4a'
-            }}>
-              Ksh {tenant.balance.toLocaleString()}
-            </p>
-          </div>
-          <div style={styles.divider} />
-          <div style={styles.balanceCol}>
-            <p style={styles.balanceLabel}>Total</p>
-            <p style={styles.balanceValue}>
-              Ksh {getTotal().toLocaleString()}
-            </p>
-          </div>
-        </div>
+        ) : (
+          <>
+            <div style={styles.balanceRow}>
+              <div style={styles.balanceCol}>
+                <p style={styles.balanceLabel}>Rent Due</p>
+                <p style={styles.balanceValue}>
+                  Ksh {tenant.rent_amount.toLocaleString()}
+                </p>
+              </div>
+              <div style={styles.divider} />
+              <div style={styles.balanceCol}>
+                <p style={styles.balanceLabel}>Penalty</p>
+                <p style={{
+                  ...styles.balanceValue,
+                  color: tenant.penalty > 0 ? '#c0392b' : '#1a7a4a'
+                }}>
+                  Ksh {tenant.penalty.toLocaleString()}
+                </p>
+              </div>
+              <div style={styles.divider} />
+              <div style={styles.balanceCol}>
+                <p style={styles.balanceLabel}>Total Due</p>
+                <p style={styles.balanceValue}>
+                  Ksh {getTotal().toLocaleString()}
+                </p>
+              </div>
+            </div>
 
-        {/* Penalty Info */}
-        <div style={styles.penaltyBadge}>
-          ⚠ Late penalty after {tenant.penalty_date}th
-          ({tenant.penalty_rate}% = Ksh {tenant.penalty_amount.toLocaleString()})
-        </div>
+            {tenant.penalty > 0 && (
+              <div style={styles.penaltyBadge}>
+                ⚠ A late penalty of Ksh {tenant.penalty.toLocaleString()} has been added since rent wasn't paid by the 5th.
+              </div>
+            )}
+          </>
+        )}
       </div>
 
       {/* Pay Now Section */}
@@ -154,29 +152,35 @@ function TenantDashboard() {
       {/* Payment History */}
       <div style={styles.card}>
         <p style={styles.cardTitle}>Payment History</p>
-        {payments.map((payment) => (
-          <div key={payment.id} style={styles.paymentRow}>
-            <div style={styles.paymentLeft}>
-              <p style={styles.paymentMonth}>{payment.month}</p>
-              {payment.mpesa_code && (
-                <p style={styles.paymentCode}>
-                  Code: {payment.mpesa_code}
+        {payments.length === 0 ? (
+          <p style={{ color: '#888', fontSize: '14px', textAlign: 'center', padding: '24px 0' }}>
+            No payments recorded yet.
+          </p>
+        ) : (
+          payments.map((payment) => (
+            <div key={payment.payment_id} style={styles.paymentRow}>
+              <div style={styles.paymentLeft}>
+                <p style={styles.paymentMonth}>{payment.month}</p>
+                {payment.mpesa_code && (
+                  <p style={styles.paymentCode}>
+                    Code: {payment.mpesa_code}
+                  </p>
+                )}
+              </div>
+              <div style={styles.paymentRight}>
+                <p style={styles.paymentAmount}>
+                  Ksh {payment.amount.toLocaleString()}
                 </p>
-              )}
+                <p style={{
+                  ...styles.paymentStatus,
+                  color: getStatusColor(payment.status)
+                }}>
+                  {payment.status.toUpperCase()}
+                </p>
+              </div>
             </div>
-            <div style={styles.paymentRight}>
-              <p style={styles.paymentAmount}>
-                Ksh {payment.amount.toLocaleString()}
-              </p>
-              <p style={{
-                ...styles.paymentStatus,
-                color: getStatusColor(payment.status)
-              }}>
-                {payment.status.toUpperCase()}
-              </p>
-            </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
 
     </div>
@@ -310,4 +314,5 @@ const styles = {
   paymentAmount: { fontSize: '15px', fontWeight: 600, margin: '0 0 4px', color: '#1a1a1a' },
   paymentStatus: { fontSize: '12px', fontWeight: 700, margin: 0 },
 };
+
 export default TenantDashboard;
