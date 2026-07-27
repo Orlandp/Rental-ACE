@@ -24,7 +24,7 @@ function getNextBillingPeriod(bills) {
 }
 
 function AdminDashboard() {
-  useIdleLogout(5);
+  useIdleLogout(0.1);
   const [waterHistory, setWaterHistory] = useState([
     { id: 1, month: 'july 2026', amount: 1200, house7: 1200, house8: 980 },
     { id: 2, month: 'june 2026', amount: 1100, house7: 1100, house8: 900 },

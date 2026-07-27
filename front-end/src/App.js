@@ -6,6 +6,7 @@ import TenantDashboard from './pages/tenant/Dashboard';
 import LandlordDashboard from './pages/landlord/Dashboard';
 import AdminDashboard from './pages/admin/Dashboard';
 import SuccessPage from './pages/SuccessPage';
+import ZoomControl from './components/ZoomControl';
 
 function HomePage() {
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 768);
@@ -109,16 +110,16 @@ function HomePage() {
 function App() {
   const path = window.location.pathname;
 
-  if (path === '/')                   return <HomePage />;
-  if (path === '/pay')                return <PayPage />;
-  if (path === '/success')            return <SuccessPage />;
-  if (path === '/login')              return <LoginPage />;
-  if (path === '/register')           return <RegisterPage />;
-  if (path === '/tenant/dashboard')   return <TenantDashboard />;
-  if (path === '/landlord/dashboard') return <LandlordDashboard />;
-  if (path === '/admin/dashboard')    return <AdminDashboard />;
-
-  return (
+  let page;
+  if (path === '/')                   page = <HomePage />;
+  else if (path === '/pay')                page = <PayPage />;
+  else if (path === '/success')            page = <SuccessPage />;
+  else if (path === '/login')              page = <LoginPage />;
+  else if (path === '/register')           page = <RegisterPage />;
+  else if (path === '/tenant/dashboard')   page = <TenantDashboard />;
+  else if (path === '/landlord/dashboard') page = <LandlordDashboard />;
+  else if (path === '/admin/dashboard')    page = <AdminDashboard />;
+  else page = (
     <div style={notFoundStyles.page}>
       <div style={notFoundStyles.card}>
         <p style={notFoundStyles.icon}>🔍</p>
@@ -129,6 +130,13 @@ function App() {
         <a href="/" style={notFoundStyles.btn}>→ Go Home</a>
       </div>
     </div>
+  );
+
+  return (
+    <>
+      {page}
+      <ZoomControl />
+    </>
   );
 }
 

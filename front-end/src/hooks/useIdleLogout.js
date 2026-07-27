@@ -1,9 +1,9 @@
 import { useEffect, useRef } from "react";
 
-function useIdleLogout () {
+function useIdleLogout (timeoutMinutes) {
     const timerRef = useRef(null);
 
-    UseEffect (() => {
+    useEffect(() => {
         const timeoutMs = timeoutMinutes * 60 * 1000;
         
         function logout() {
