@@ -4,11 +4,15 @@ function SuccessPage() {
 
      const params = new URLSearchParams(window.location.search);
      const receiptNo = params.get('receipt') || '';
+     const paymentId = params.get('payment_id') || '';
      const unit = params.get('unit') || '';
      const tenant = params.get('tenant') || '';
      const amount = params.get('amount') || '';
+     const rent = params.get('rent') || '';
+     const penalty = params.get('penalty') || '';
      const mpesaCode = params.get('mpesa') || 'pending confirmation';
      const month = params.get('month') || '';
+     const date = params.get('date') || '';
 
      const [countdown, setCountdown] = useState(10);
 
@@ -25,6 +29,25 @@ function SuccessPage() {
      },1000);
      return () => clearInterval(timer);
      }, [unit]);
+
+     async function handleDownloadReceipt() {
+        try {
+            const res = await fetch(`http://localhost:5000/api/payments/${paymentId}/receipt/pdf`);
+            if (!res.ok) {
+                alert('Could not generate receipt PDF.');
+                return;
+            }
+            const blob = await res.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `receipt-${receiptNo}.pdf`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        } catch (err) {
+            alert('Could not reach the server.');
+        }
+     }
 
      return (
         <div style={styles.page}>
@@ -59,12 +82,34 @@ function SuccessPage() {
                             <p style={styles.detailValue}>{month}</p>
                         </div>
                     )}
+                    {rent && (
+                        <div style={styles.detailRow}>
+                            <p style={styles.detailLabel}>Rent Amount</p>
+                            <p style={styles.detailValue}>
+                                Ksh {parseInt(rent).toLocaleString()}
+                            </p>
+                        </div>
+                    )}
+                    {penalty && parseInt(penalty) > 0 && (
+                        <div style={styles.detailRow}>
+                            <p style={styles.detailLabel}>Late Penalty</p>
+                            <p style={{ ...styles.detailValue, color: '#c0392b' }}>
+                                Ksh {parseInt(penalty).toLocaleString()}
+                            </p>
+                        </div>
+                    )}
                     {amount && (
                         <div style={styles.detailRow}>
-                            <p style={styles.detailLabel}>Amount Paid</p>
-                            <p style={styles.detailValue}>
+                            <p style={{ ...styles.detailLabel, fontWeight: 700, color: '#1a1a1a' }}>Amount Paid</p>
+                            <p style={{ ...styles.detailValue, fontSize: '16px' }}>
                                 Ksh {parseInt(amount).toLocaleString()}
                             </p>
+                        </div>
+                    )}
+                    {date && (
+                        <div style={styles.detailRow}>
+                            <p style={styles.detailLabel}>Date</p>
+                            <p style={styles.detailValue}>{date}</p>
                         </div>
                     )}
                     <div style={styles.detailRow}>
@@ -83,7 +128,15 @@ function SuccessPage() {
                 <div style={styles.messages}>
                     An SMS confirmation has been sent to your phone.
                 </div>
-                <button 
+                {paymentId && (
+                    <button
+                      onClick={handleDownloadReceipt}
+                      style={styles.receiptBtn}
+                    >
+                        📄 Download Receipt (PDF)
+                    </button>
+                )}
+                <button
                   onClick={() => window.location.href = '/pay?unit=' + unit}
                   style={styles.backBtn}
                 >
@@ -190,6 +243,19 @@ const styles = {
     color: '#1a7a4a',
     marginBottom: '24px',
     fontWeight: 500,
+  },
+  receiptBtn: {
+    width: '100%',
+    padding: '14px',
+    backgroundColor: 'white',
+    color: '#1a1a1a',
+    border: '2px solid #1a1a1a',
+    borderRadius: '12px',
+    fontSize: '15px',
+    fontWeight: 600,
+    cursor: 'pointer',
+    marginBottom: '12px',
+    boxSizing: 'border-box',
   },
   backBtn: {
     width: '100%',

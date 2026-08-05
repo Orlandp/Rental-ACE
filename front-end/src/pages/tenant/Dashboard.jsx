@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import useIdleLogout from '../../hooks/useIdleLogout';
+import AgreementGate from './AgreementGate';
 
 function TenantDashboard() {
 
@@ -7,6 +8,7 @@ function TenantDashboard() {
   
   const [tenant, setTenant]     = useState(null);
   const [payments, setPayments] = useState([]);
+  const [invoices, setInvoices] = useState([]);
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState('');
 
@@ -28,6 +30,12 @@ function TenantDashboard() {
         });
         const paymentsData = await paymentsRes.json();
         if (paymentsRes.ok) setPayments(paymentsData);
+
+        const invoicesRes = await fetch('http://localhost:5000/api/invoices', {
+          credentials: 'include',
+        });
+        const invoicesData = await invoicesRes.json();
+        if (invoicesRes.ok) setInvoices(invoicesData);
       } catch (err) {
         setError('Could not reach the server.');
       } finally {
@@ -43,6 +51,27 @@ function TenantDashboard() {
 
   function handlePay() {
     window.location.href = `/pay?unit=${tenant.unit_number}`;
+  }
+
+  async function handleDownloadReceipt(paymentId) {
+    try {
+      const res = await fetch(`http://localhost:5000/api/payments/${paymentId}/receipt/pdf`, {
+        credentials: 'include',
+      });
+      if (!res.ok) {
+        alert('Could not generate receipt PDF.');
+        return;
+      }
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `receipt-RCT-${String(paymentId).padStart(5, '0')}.pdf`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      alert('Could not reach the server.');
+    }
   }
 
   function getStatusColor(status) {
@@ -69,6 +98,28 @@ function TenantDashboard() {
     return (
       <div style={styles.centered}>
         <p style={styles.errorText}>⚠ {error}</p>
+      </div>
+    );
+  }
+
+  if (!tenant.agreement_signed) {
+    return <AgreementGate />;
+  }
+
+  if (!tenant.deposit_paid) {
+    return (
+      <div style={styles.centered}>
+        <div style={styles.pendingCard}>
+          <p style={styles.pendingIcon}>⏳</p>
+          <h2 style={styles.pendingTitle}>Almost there</h2>
+          <p style={styles.pendingText}>
+            Your deposit payment is pending admin confirmation. Once the office
+            has recorded your deposit, you'll get full access to your dashboard.
+          </p>
+          <button onClick={handleLogout} style={styles.pendingLogoutBtn}>
+            Logout
+          </button>
+        </div>
       </div>
     );
   }
@@ -152,6 +203,40 @@ function TenantDashboard() {
         </div>
       </div>
 
+      {/* My Invoices */}
+      <div style={styles.card}>
+        <p style={styles.cardTitle}>My Invoices</p>
+        {invoices.length === 0 ? (
+          <p style={{ color: '#888', fontSize: '14px', textAlign: 'center', padding: '24px 0' }}>
+            No invoices yet.
+          </p>
+        ) : (
+          invoices.map((invoice) => (
+            <div key={invoice.invoice_id} style={styles.paymentRow}>
+              <div style={styles.paymentLeft}>
+                <p style={styles.paymentMonth}>{invoice.month}</p>
+                <p style={styles.paymentCode}>
+                  Due {invoice.due_date}
+                  {invoice.water_amount > 0 ? ` · Water Ksh ${invoice.water_amount.toLocaleString()}` : ''}
+                  {invoice.penalty > 0 ? ` · Penalty Ksh ${invoice.penalty.toLocaleString()}` : ''}
+                </p>
+              </div>
+              <div style={styles.paymentRight}>
+                <p style={styles.paymentAmount}>
+                  Ksh {invoice.total_amount.toLocaleString()}
+                </p>
+                <p style={{
+                  ...styles.paymentStatus,
+                  color: getStatusColor(invoice.status)
+                }}>
+                  {invoice.status.toUpperCase()}
+                </p>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
       {/* Payment History */}
       <div style={styles.card}>
         <p style={styles.cardTitle}>Payment History</p>
@@ -170,16 +255,26 @@ function TenantDashboard() {
                   </p>
                 )}
               </div>
-              <div style={styles.paymentRight}>
-                <p style={styles.paymentAmount}>
-                  Ksh {payment.amount.toLocaleString()}
-                </p>
-                <p style={{
-                  ...styles.paymentStatus,
-                  color: getStatusColor(payment.status)
-                }}>
-                  {payment.status.toUpperCase()}
-                </p>
+              <div style={styles.paymentRightGroup}>
+                <div style={styles.paymentRight}>
+                  <p style={styles.paymentAmount}>
+                    Ksh {payment.amount.toLocaleString()}
+                  </p>
+                  <p style={{
+                    ...styles.paymentStatus,
+                    color: getStatusColor(payment.status)
+                  }}>
+                    {payment.status.toUpperCase()}
+                  </p>
+                </div>
+                {payment.status === 'paid' && (
+                  <button
+                    onClick={() => handleDownloadReceipt(payment.payment_id)}
+                    style={styles.receiptBtn}
+                  >
+                    📄 Receipt
+                  </button>
+                )}
               </div>
             </div>
           ))
@@ -203,6 +298,31 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     height: '100vh',
+    backgroundColor: '#f4f6f8',
+  },
+  pendingCard: {
+    background: 'white',
+    borderRadius: '20px',
+    padding: '40px 32px',
+    maxWidth: '400px',
+    width: '100%',
+    textAlign: 'center',
+    boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+    margin: '0 16px',
+    boxSizing: 'border-box',
+  },
+  pendingIcon: { fontSize: '40px', margin: '0 0 16px' },
+  pendingTitle: { fontSize: '22px', fontWeight: 700, color: '#1a1a1a', margin: '0 0 12px' },
+  pendingText: { fontSize: '14px', color: '#666', lineHeight: 1.6, margin: '0 0 28px' },
+  pendingLogoutBtn: {
+    padding: '12px 28px',
+    backgroundColor: 'white',
+    color: '#1a7a4a',
+    border: '2px solid #1a7a4a',
+    borderRadius: '10px',
+    fontSize: '14px',
+    fontWeight: 600,
+    cursor: 'pointer',
   },
   loadingText: { color: '#888', fontSize: '15px' },
   errorText: { color: '#c0392b', fontSize: '15px', textAlign: 'center' },
@@ -316,6 +436,22 @@ const styles = {
   paymentRight: { textAlign: 'right' },
   paymentAmount: { fontSize: '15px', fontWeight: 600, margin: '0 0 4px', color: '#1a1a1a' },
   paymentStatus: { fontSize: '12px', fontWeight: 700, margin: 0 },
+  paymentRightGroup: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+  },
+  receiptBtn: {
+    padding: '8px 14px',
+    backgroundColor: 'white',
+    color: '#1a7a4a',
+    border: '1.5px solid #1a7a4a',
+    borderRadius: '8px',
+    fontSize: '12px',
+    fontWeight: 600,
+    cursor: 'pointer',
+    whiteSpace: 'nowrap',
+  },
 };
 
 export default TenantDashboard;

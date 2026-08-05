@@ -24,7 +24,7 @@ function getNextBillingPeriod(bills) {
 }
 
 function AdminDashboard() {
-  useIdleLogout(0.1);
+  useIdleLogout(2.0);
   const [waterHistory, setWaterHistory] = useState([
     { id: 1, month: 'july 2026', amount: 1200, house7: 1200, house8: 980 },
     { id: 2, month: 'june 2026', amount: 1100, house7: 1100, house8: 900 },
@@ -43,6 +43,17 @@ function AdminDashboard() {
   const [allPayments, setAllPayments] = useState([]);
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterMonth, setFilterMonth] = useState('all');
+  const [manualUnitId, setManualUnitId] = useState('');
+  const [manualAmount, setManualAmount] = useState('');
+  const [manualPhone, setManualPhone] = useState('');
+  const [manualMpesaCode, setManualMpesaCode] = useState('');
+  const [manualDate, setManualDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [manualMonth, setManualMonth] = useState(() => {
+    const now = new Date();
+    return `${now.toLocaleString('en-US', { month: 'long' })} ${now.getFullYear()}`;
+  });
+  const [submittingManual, setSubmittingManual] = useState(false);
+  const [manualError, setManualError] = useState('');
   const [admin, setAdmin] = useState(null);
   const [units, setUnits] = useState([]);
   const [tenants, setTenants] = useState([]);
@@ -71,6 +82,10 @@ function AdminDashboard() {
   const [newUnitHasWater, setNewUnitHasWater] = useState(false);
   const [nextPeriod7, setNextPeriod7] = useState(null);
   const [nextPeriod8, setNextPeriod8] = useState(null);
+  const [invoices, setInvoices] = useState([]);
+  const [invoiceUnitId, setInvoiceUnitId] = useState('');
+  const [generatingInvoice, setGeneratingInvoice] = useState(false);
+  const [invoiceError, setInvoiceError] = useState('');
 
   useEffect(() => {
     function handleResize() {
@@ -243,6 +258,65 @@ function AdminDashboard() {
     }
   }
 
+  async function handleDownloadReceipt(paymentId) {
+    try {
+      const res = await fetch(`http://localhost:5000/api/payments/${paymentId}/receipt/pdf`, {
+        credentials: 'include',
+      });
+      if (!res.ok) {
+        alert('Could not generate receipt PDF.');
+        return;
+      }
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `receipt-RCT-${String(paymentId).padStart(5, '0')}.pdf`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      alert('Could not reach the server.');
+    }
+  }
+
+  async function handleRecordManualPayment() {
+    if (!manualUnitId || !manualAmount || !manualPhone || !manualDate || !manualMonth) {
+      setManualError('Unit, amount, phone used, date, and month are all required.');
+      return;
+    }
+    setManualError('');
+    setSubmittingManual(true);
+    try {
+      const res = await fetch('http://localhost:5000/api/payments/manual', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          unit_id: parseInt(manualUnitId),
+          amount: parseFloat(manualAmount),
+          mpesa_code: manualMpesaCode || undefined,
+          phone_used: manualPhone,
+          payment_date: manualDate,
+          month: manualMonth,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setManualError(data.error || 'Could not record payment.');
+        return;
+      }
+      await loadPayments();
+      setManualUnitId('');
+      setManualAmount('');
+      setManualPhone('');
+      setManualMpesaCode('');
+    } catch (err) {
+      setManualError('Could not reach the server.');
+    } finally {
+      setSubmittingManual(false);
+    }
+  }
+
   async function loadPayments() {
     try {
       const res = await fetch('http://localhost:5000/api/payments', {
@@ -300,6 +374,63 @@ function AdminDashboard() {
     }
   }
 
+  async function loadInvoices() {
+    try {
+      const res = await fetch('http://localhost:5000/api/invoices', {
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (res.ok) setInvoices(data);
+    } catch (err) {
+      console.error('Could not load invoices:', err);
+    }
+  }
+
+  async function handleGenerateInvoice() {
+    if (!invoiceUnitId) {
+      setInvoiceError('Select a unit first.');
+      return;
+    }
+    setInvoiceError('');
+    setGeneratingInvoice(true);
+    try {
+      const res = await fetch('http://localhost:5000/api/invoices', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ unit_id: parseInt(invoiceUnitId) }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setInvoiceError(data.error || 'Could not generate invoice.');
+        return;
+      }
+      await loadInvoices();
+      setInvoiceUnitId('');
+    } catch (err) {
+      setInvoiceError('Could not reach the server.');
+    } finally {
+      setGeneratingInvoice(false);
+    }
+  }
+
+  async function handleDeleteInvoice(invoiceId) {
+    try {
+      const res = await fetch(`http://localhost:5000/api/invoices/${invoiceId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Could not delete invoice.');
+        return;
+      }
+      await loadInvoices();
+    } catch (err) {
+      alert('Could not reach the server.');
+    }
+  }
+
   async function loadMessages() {
     try {
       const res = await fetch ('http://localhost:5000/api/messages', {
@@ -324,6 +455,7 @@ function AdminDashboard() {
         await loadTenants();
         await loadPending();
         await loadPayments();
+        await loadInvoices();
       } catch (err) {
         setError('Could not load dashboard.');
       } finally {
@@ -506,6 +638,37 @@ function AdminDashboard() {
     }
   }
 
+  async function handleMarkDeposit(tenant) {
+    const amountStr = window.prompt(
+      `Enter the deposit amount received from ${tenant.full_name}:`
+    );
+    if (amountStr === null) return;
+
+    const amount = parseFloat(amountStr);
+    if (isNaN(amount) || amount <= 0) {
+      alert('Enter a valid deposit amount.');
+      return;
+    }
+
+    try {
+      const res = await fetch(`http://localhost:5000/api/tenants/${tenant.user_id}/deposit`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ amount_paid: amount }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Could not record deposit.');
+        return;
+      }
+      await loadTenants();
+      alert('Deposit recorded.');
+    } catch (err) {
+      alert('Could not reach the server.');
+    }
+  }
+
   function getCategoryStyle(category) {
     if (category === 'Repairs') return { bg: '#fdecea', color: '#c0392b' };
     if (category === 'Cleaning') return { bg: '#e8f4fd', color: '#2980b9' };
@@ -590,6 +753,7 @@ function AdminDashboard() {
     { key: 'units', label: 'Units', icon: '🏘️' },
     { key: 'tenants', label: 'Tenants', icon: '👥' },
     { key: 'payments', label: 'Payments', icon: '💰' },
+    { key: 'invoices', label: 'Invoices', icon: '📋' },
     { key: 'expenses', label: 'Expenses', icon: '🧾' },
     { key: 'messages', label: 'Messages', icon: '💬' },
     { key: 'water', label: 'Water Bills', icon: '💧' },
@@ -1085,6 +1249,11 @@ function AdminDashboard() {
                             <p style={styles.tenantName}>{tenant.full_name}</p>
                             <p style={styles.tenantDetails}>@{tenant.username} · {tenant.phone}</p>
                             <p style={styles.tenantPenalty}>Joined: {tenant.created_at}</p>
+                            <p style={styles.tenantDetails}>
+                              Agreement: {tenant.agreement_signed ? '✓ Signed' : '— Not signed'}
+                              {' · '}
+                              Deposit: {tenant.deposit_paid ? `✓ Ksh ${tenant.deposit_amount_paid?.toLocaleString()}` : '— Pending'}
+                            </p>
                           </div>
                         )}
                       </div>
@@ -1095,8 +1264,13 @@ function AdminDashboard() {
                             <button onClick={() => setEditingTenant(null)} style={styles.cancelBtn}>Cancel</button>
                           </div>
                         ) : (
-                          <div style={{ display: 'flex', gap: '6px' }}>
+                          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                             <button onClick={() => handleEditTenant(tenant)} style={styles.editBtn}>Edit</button>
+                            {!tenant.deposit_paid && (
+                              <button onClick={() => handleMarkDeposit(tenant)} style={styles.saveBtn}>
+                                Mark Deposit Paid
+                              </button>
+                            )}
                             <button onClick={() => handleVacate(tenant.user_id)} style={styles.vacateBtn}>Vacate</button>
                           </div>
                         )}
@@ -1168,6 +1342,90 @@ function AdminDashboard() {
               </div>
 
               <div style={styles.card}>
+                <p style={styles.cardTitle}>Record Manual Payment</p>
+                <p style={{ fontSize: '13px', color: '#888', margin: '-12px 0 20px' }}>
+                  For cash, bank transfer, phone-based M-Pesa (Houses 7–9), or corrections that
+                  won't come through the paybill automatically.
+                </p>
+                <div style={styles.expenseFormRow}>
+                  <div style={{ ...styles.filterGroup, flex: 1 }}>
+                    <p style={styles.filterLabel}>Unit</p>
+                    <select
+                      value={manualUnitId}
+                      onChange={(e) => setManualUnitId(e.target.value)}
+                      style={{ ...styles.filterSelect, width: '100%', boxSizing: 'border-box' }}
+                    >
+                      <option value="">Select a unit...</option>
+                      {units.map((u) => (
+                        <option key={u.unit_id} value={u.unit_id}>
+                          House {u.unit_number} ({u.payment_type})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div style={styles.filterGroup}>
+                    <p style={styles.filterLabel}>Amount (Ksh)</p>
+                    <input
+                      type="number"
+                      value={manualAmount}
+                      onChange={(e) => setManualAmount(e.target.value)}
+                      placeholder="e.g. 18000"
+                      style={styles.filterSelect}
+                      min="1"
+                    />
+                  </div>
+                  <div style={styles.filterGroup}>
+                    <p style={styles.filterLabel}>Phone Used</p>
+                    <input
+                      type="text"
+                      value={manualPhone}
+                      onChange={(e) => setManualPhone(e.target.value)}
+                      placeholder="0712345678"
+                      style={styles.filterSelect}
+                    />
+                  </div>
+                  <div style={styles.filterGroup}>
+                    <p style={styles.filterLabel}>M-Pesa Code (optional)</p>
+                    <input
+                      type="text"
+                      value={manualMpesaCode}
+                      onChange={(e) => setManualMpesaCode(e.target.value)}
+                      placeholder="e.g. QGH7X..."
+                      style={styles.filterSelect}
+                    />
+                  </div>
+                  <div style={styles.filterGroup}>
+                    <p style={styles.filterLabel}>Payment Date</p>
+                    <input
+                      type="date"
+                      value={manualDate}
+                      onChange={(e) => setManualDate(e.target.value)}
+                      style={styles.filterSelect}
+                    />
+                  </div>
+                  <div style={styles.filterGroup}>
+                    <p style={styles.filterLabel}>Month</p>
+                    <input
+                      type="text"
+                      value={manualMonth}
+                      onChange={(e) => setManualMonth(e.target.value)}
+                      placeholder="e.g. August 2026"
+                      style={styles.filterSelect}
+                    />
+                  </div>
+                  <div style={styles.filterGroup}>
+                    <p style={styles.filterLabel}>&nbsp;</p>
+                    <button onClick={handleRecordManualPayment} disabled={submittingManual} style={styles.addExpenseBtn}>
+                      {submittingManual ? 'Recording...' : '+ Record Payment'}
+                    </button>
+                  </div>
+                </div>
+                {manualError !== '' && (
+                  <p style={{ color: '#c0392b', fontSize: '13px', margin: '12px 0 0' }}>{manualError}</p>
+                )}
+              </div>
+
+              <div style={styles.card}>
                 <p style={styles.cardTitle}>Payment Records</p>
                 {filteredPayments.length === 0 ? (
                   <p style={styles.placeholderText}>No payments match your filter.</p>
@@ -1193,6 +1451,87 @@ function AdminDashboard() {
                           {payment.status.toUpperCase()}
                         </span>
                       </div>
+                      {payment.status === 'paid' && (
+                        <button
+                          onClick={() => handleDownloadReceipt(payment.payment_id)}
+                          style={styles.addExpenseBtn}
+                        >
+                          📄 Receipt
+                        </button>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* INVOICES */}
+          {activePage === 'invoices' && (
+            <div>
+              <div style={styles.card}>
+                <p style={styles.cardTitle}>Generate Invoice</p>
+                <div style={styles.filterRow}>
+                  <div style={{ ...styles.filterGroup, flex: 1 }}>
+                    <p style={styles.filterLabel}>Tenant / Unit</p>
+                    <select
+                      value={invoiceUnitId}
+                      onChange={(e) => setInvoiceUnitId(e.target.value)}
+                      style={{ ...styles.filterSelect, width: '100%', boxSizing: 'border-box' }}
+                    >
+                      <option value="">Select a tenant...</option>
+                      {tenants.filter((t) => t.status === 'active').map((t) => (
+                        <option key={t.user_id} value={t.unit_id}>
+                          {t.full_name} - House {units.find((u) => u.unit_id === t.unit_id)?.unit_number ?? t.unit_id}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div style={styles.filterGroup}>
+                    <p style={styles.filterLabel}>&nbsp;</p>
+                    <button onClick={handleGenerateInvoice} disabled={generatingInvoice} style={styles.addExpenseBtn}>
+                      {generatingInvoice ? 'Generating...' : '+ Generate'}
+                    </button>
+                  </div>
+                </div>
+                {invoiceError !== '' && (
+                  <p style={{ color: '#c0392b', fontSize: '13px', margin: '12px 0 0' }}>{invoiceError}</p>
+                )}
+              </div>
+
+              <div style={styles.card}>
+                <p style={styles.cardTitle}>Invoice Records ({invoices.length})</p>
+                {invoices.length === 0 ? (
+                  <p style={styles.placeholderText}>No invoices generated yet.</p>
+                ) : (
+                  invoices.map((invoice) => (
+                    <div key={invoice.invoice_id} style={styles.paymentRowFull}>
+                      <div style={styles.unitBadge}>H{invoice.unit_number}</div>
+                      <div style={styles.paymentInfo}>
+                        <p style={styles.paymentTenant}>{invoice.tenant_name}</p>
+                        <p style={styles.paymentDate}>
+                          {invoice.month} · Due {invoice.due_date}
+                          {invoice.water_amount > 0 ? ` · Water Ksh ${invoice.water_amount.toLocaleString()}` : ''}
+                          {invoice.penalty > 0 ? ` · Penalty Ksh ${invoice.penalty.toLocaleString()}` : ''}
+                        </p>
+                      </div>
+                      <div style={styles.paymentRight}>
+                        <p style={styles.paymentAmount}>Ksh {invoice.total_amount.toLocaleString()}</p>
+                        <span
+                          style={{
+                            ...styles.paymentStatusBadge,
+                            backgroundColor: invoice.status === 'paid' ? '#e8f5ee' : '#fdecea',
+                            color: invoice.status === 'paid' ? '#1a7a4a' : '#c0392b',
+                          }}
+                        >
+                          {invoice.status.toUpperCase()}
+                        </span>
+                      </div>
+                      {invoice.status !== 'paid' && (
+                        <button onClick={() => handleDeleteInvoice(invoice.invoice_id)} style={styles.deleteBtn}>
+                          Delete
+                        </button>
+                      )}
                     </div>
                   ))
                 )}

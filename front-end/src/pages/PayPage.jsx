@@ -75,11 +75,15 @@ function PayPage() {
 
       window.location.href =
         `/success?receipt=${data.receipt.receipt_no}` +
+        `&payment_id=${data.receipt.payment_id}` +
         `&unit=${data.receipt.unit_number}` +
         `&tenant=${encodeURIComponent(data.receipt.tenant_name)}` +
         `&amount=${data.receipt.amount_paid}` +
+        `&rent=${data.receipt.rent_amount}` +
+        `&penalty=${data.receipt.penalty}` +
         `&mpesa=${data.receipt.mpesa_code}` +
-        `&month=${encodeURIComponent(data.receipt.month)}`;
+        `&month=${encodeURIComponent(data.receipt.month)}` +
+        `&date=${encodeURIComponent(data.receipt.payment_date)}`;
 
     } catch (err) {
       setFormError('Could not reach the server. Is Flask running?');
@@ -126,41 +130,89 @@ return (
             )}
           </div>
 
-          {/* Desktop — two column layout for inputs */}
-          <div style={isDesktop ? styles.twoCol : {}}>
+          {/* Invoice */}
+          <div style={styles.invoiceCard}>
+            <p style={styles.invoiceTitle}>Invoice — {unitData.current_month}</p>
 
-            <div style={isDesktop ? styles.col : {}}>
-              {/* Phone */}
-              <div style={styles.fieldGroup}>
-                <p style={styles.fieldLabel}>Your M-Pesa Number</p>
-                <input
-                  id="pay-phone"
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') handlePayment(); }}
-                  placeholder="e.g. 0712 345 678"
-                  maxLength={12}
-                  style={styles.input}
-                />
+            {unitData.already_paid_this_month ? (
+              <div style={{ ...styles.penaltyBadge, backgroundColor: '#e8f5ee', border: '1px solid #b8dfc9', color: '#1a7a4a' }}>
+                ✓ Rent for {unitData.current_month} has already been paid. You're all clear!
+              </div>
+            ) : (
+              <>
+                <div style={styles.invoiceRow}>
+                  <p style={styles.invoiceLabel}>Rent Due</p>
+                  <p style={styles.invoiceValue}>Ksh {unitData.rent_amount.toLocaleString()}</p>
+                </div>
+                {unitData.penalty > 0 && (
+                  <div style={styles.invoiceRow}>
+                    <p style={styles.invoiceLabel}>Late Penalty</p>
+                    <p style={{ ...styles.invoiceValue, color: '#c0392b' }}>
+                      Ksh {unitData.penalty.toLocaleString()}
+                    </p>
+                  </div>
+                )}
+                {unitData.has_water_bill === 1 && (
+                  <div style={styles.invoiceRow}>
+                    <p style={styles.invoiceLabel}>Water Bill (billed separately)</p>
+                    <p style={styles.invoiceValue}>Ksh {unitData.water_bill.toLocaleString()}</p>
+                  </div>
+                )}
+                <div style={{ ...styles.invoiceRow, borderTop: '2px solid #f0f0f0', paddingTop: '12px', marginTop: '4px' }}>
+                  <p style={{ ...styles.invoiceLabel, fontWeight: 700, color: '#1a1a1a', fontSize: '14px' }}>
+                    Balance Due
+                  </p>
+                  <p style={{ ...styles.invoiceValue, fontSize: '18px' }}>
+                    Ksh {unitData.total_due.toLocaleString()}
+                  </p>
+                </div>
+
+                {unitData.penalty > 0 && (
+                  <div style={styles.penaltyBadge}>
+                    ⚠ A late penalty has been added since rent wasn't paid by the 5th.
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* Desktop — two column layout for inputs */}
+          {!unitData.already_paid_this_month && (
+            <div style={isDesktop ? styles.twoCol : {}}>
+
+              <div style={isDesktop ? styles.col : {}}>
+                {/* Phone */}
+                <div style={styles.fieldGroup}>
+                  <p style={styles.fieldLabel}>Your M-Pesa Number</p>
+                  <input
+                    id="pay-phone"
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handlePayment(); }}
+                    placeholder="e.g. 0712 345 678"
+                    maxLength={12}
+                    style={styles.input}
+                  />
+                </div>
+
+                {/* Error */}
+                {formError !== '' && (
+                  <p style={styles.formError}>{formError}</p>
+                )}
+
+                {/* Pay Button */}
+                <button
+                  onClick={handlePayment}
+                  disabled={paying}
+                  style={{ ...styles.payBtn, opacity: paying ? 0.7 : 1 }}
+                >
+                  {paying ? 'Processing...' : `Pay Ksh ${unitData.total_due.toLocaleString()} via M-Pesa`}
+                </button>
               </div>
 
-              {/* Error */}
-              {formError !== '' && (
-                <p style={styles.formError}>{formError}</p>
-              )}
-
-              {/* Pay Button */}
-              <button
-                onClick={handlePayment}
-                disabled={paying}
-                style={{ ...styles.payBtn, opacity: paying ? 0.7 : 1 }}
-              >
-                {paying ? 'Processing...' : 'Pay via M-Pesa'}
-              </button>
             </div>
-
-          </div>
+          )}
 
           {/* Login Link */}
           <div style={styles.loginLink}>
@@ -323,6 +375,39 @@ const styles = {
     textAlign: 'center',
     marginBottom: '24px',
     fontWeight: 500,
+  },
+
+  // ---- INVOICE ----
+  invoiceCard: {
+    backgroundColor: '#f8fafc',
+    borderRadius: '14px',
+    padding: '20px',
+    marginBottom: '24px',
+  },
+  invoiceTitle: {
+    fontSize: '12px',
+    fontWeight: 700,
+    color: '#555',
+    margin: '0 0 12px',
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
+  },
+  invoiceRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '8px 0',
+  },
+  invoiceLabel: {
+    fontSize: '13px',
+    color: '#555',
+    margin: 0,
+  },
+  invoiceValue: {
+    fontSize: '14px',
+    fontWeight: 600,
+    color: '#1a1a1a',
+    margin: 0,
   },
 
   // ---- ERROR + BUTTON ----

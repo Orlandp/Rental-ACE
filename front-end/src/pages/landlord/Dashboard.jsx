@@ -210,6 +210,13 @@ function LandlordDashboard() {
                       <div>
                         <p style={styles.unitTenant}>{occupant ? occupant.full_name : 'Available'}</p>
                         <p style={styles.unitRent}>Ksh {unit.rent_amount.toLocaleString()}</p>
+                        {occupant && (
+                          <p style={styles.unitOnboarding}>
+                            Agreement: {occupant.agreement_signed ? '✓ Signed' : '— Pending'}
+                            {' · '}
+                            Deposit: {occupant.deposit_paid ? '✓ Paid' : '— Pending'}
+                          </p>
+                        )}
                       </div>
                     </div>
                     <p style={{
@@ -551,6 +558,7 @@ const styles = {
   },
   unitTenant: { fontSize: '14px', fontWeight: 600, margin: '0 0 2px', color: '#1a1a1a' },
   unitRent: { fontSize: '12px', color: '#888', margin: 0 },
+  unitOnboarding: { fontSize: '11px', color: '#aaa', margin: '2px 0 0' },
   expenseRow: {
     display: 'flex',
     alignItems: 'center',
