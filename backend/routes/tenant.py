@@ -9,9 +9,11 @@ tenants_bp = Blueprint('tenants', __name__)
 @role_required('admin', 'landlord')
 def get_tenants():
     conn = get_db()
-    tenants = conn.execute(
-        "SELECT user_id, full_name, username, phone, id_number, role, unit_id, status, created_at FROM users WHERE role = 'tenant'"
-    ).fetchall()
+    tenants = conn.execute('''
+        SELECT user_id, full_name, username, phone, id_number, role, unit_id, status, created_at,
+               agreement_signed, agreement_signed_at, deposit_paid, deposit_paid_at, deposit_amount_paid
+        FROM users WHERE role = 'tenant'
+    ''').fetchall()
     conn.close()
 
     return jsonify([dict(t) for t in tenants]), 200
@@ -118,6 +120,45 @@ def vacate_tenant(user_id):
 
     return jsonify({'message': f"{user['full_name']} has been vacated"}), 200
 
+@tenants_bp.route('/api/tenants/<int:user_id>/deposit', methods=['PUT'])
+@role_required('admin', 'landlord')
+def mark_deposit_paid(user_id):
+    from datetime import datetime
+
+    conn = get_db()
+
+    user = conn.execute(
+        "SELECT * FROM users WHERE user_id = ? AND role = 'tenant'", (user_id,)
+    ).fetchone()
+
+    if not user:
+        conn.close()
+        return jsonify({'error': 'Tenant not found'}), 404
+
+    data = request.get_json(silent=True) or {}
+    amount_paid = data.get('amount_paid')
+
+    if amount_paid is None:
+        conn.close()
+        return jsonify({'error': 'amount_paid is required'}), 400
+
+    now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+    conn.execute('''
+        UPDATE users SET deposit_paid = 1, deposit_paid_at = ?, deposit_amount_paid = ?
+        WHERE user_id = ?
+    ''', (now, amount_paid, user_id))
+
+    conn.commit()
+    conn.close()
+
+    return jsonify({
+        'message': f"Deposit recorded for {user['full_name']}",
+        'deposit_paid_at': now,
+        'deposit_amount_paid': amount_paid,
+    }), 200
+
+
 @tenants_bp.route('/api/tenants/me/summary', methods=['GET'])
 @role_required('tenant')
 def my_summary():
@@ -168,4 +209,6 @@ def my_summary():
         'already_paid_this_month': bool(already_paid),
         'penalty': penalty,
         'total_due': total_due,
+        'agreement_signed': bool(user['agreement_signed']),
+        'deposit_paid': bool(user['deposit_paid']),
     }), 200

@@ -1,6 +1,8 @@
+from datetime import datetime
 from flask import Blueprint, session, request, jsonify
 from database import get_db
 from routes.decorators import login_required, role_required
+from routes.payments import calculate_penalty
 
 units_bp = Blueprint('units', __name__)
 
@@ -80,12 +82,32 @@ def get_unit_public(unit_id):
         JOIN properties p ON u.property_id = p.property_id
         WHERE u.unit_id = ?
     ''', (unit_id,)).fetchone()
-    conn.close()
 
     if not unit:
+        conn.close()
         return jsonify({'error': 'Unit not found'}), 404
 
-    return jsonify(dict(unit)), 200
+    now = datetime.now()
+    current_month = now.strftime('%B %Y')
+
+    already_paid = conn.execute(
+        'SELECT * FROM payments WHERE unit_id = ? AND month = ?',
+        (unit_id, current_month)
+    ).fetchone()
+    conn.close()
+
+    penalty = 0 if already_paid else calculate_penalty(unit['rent_amount'], now.strftime('%Y-%m-%d'))
+    total_due = 0 if already_paid else unit['rent_amount'] + penalty
+
+    unit_data = dict(unit)
+    unit_data.update({
+        'current_month': current_month,
+        'penalty': penalty,
+        'total_due': total_due,
+        'already_paid_this_month': bool(already_paid),
+    })
+
+    return jsonify(unit_data), 200
 @units_bp.route('/api/units/<int:unit_id>', methods=['DELETE'])
 @role_required('admin', 'landlord')
 def delete_unit(unit_id):
