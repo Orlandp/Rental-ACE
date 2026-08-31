@@ -16,9 +16,15 @@ from routes.agents import agents_bp
 from routes.decorators import login_required
 from database import get_db
 
+IS_PRODUCTION = os.environ.get('FLASK_ENV') == 'production'
+
 app = Flask(__name__)
-app.secret_key = 'change this to something later'
-CORS(app, supports_credentials=True, origins=['http://localhost:3000'])
+app.secret_key = os.environ.get('SECRET_KEY', 'change this to something later')
+app.config['SESSION_COOKIE_SAMESITE'] = 'None' if IS_PRODUCTION else 'Lax'
+app.config['SESSION_COOKIE_SECURE'] = IS_PRODUCTION
+
+cors_origins = os.environ.get('CORS_ORIGINS', 'http://localhost:3000').split(',')
+CORS(app, supports_credentials=True, origins=cors_origins)
 
 UPLOAD_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -115,4 +121,11 @@ if __name__ == '__main__':
     # actual serving process so it doesn't run twice.
     if not app.debug or os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
         start_invoice_scheduler()
-    app.run(debug=True, port=5001)
+    app.run(debug=True, port=int(os.environ.get('PORT', 5001)))
+elif os.environ.get('ENABLE_SCHEDULER') == 'true':
+    # Running under a production WSGI server (gunicorn on Render) rather than
+    # `python app.py` — the __main__ guard above never runs, so start the
+    # scheduler here instead. Only set ENABLE_SCHEDULER on a single-worker
+    # deployment, otherwise each worker process starts its own scheduler and
+    # invoices get generated multiple times.
+    start_invoice_scheduler()

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import useIdleLogout from '../../hooks/useIdleLogout';
 import useBackButtonLogout from '../../hooks/useBackButtonLogout';
+import { API_BASE } from '../../config';
 
 const mockAdmin = { name: 'James Orlando', property: 'Ace Apartments', location: 'Eldoret' };
 
@@ -110,7 +111,7 @@ function AdminDashboard() {
 
   async function loadPending() {
     try {
-      const res = await fetch('http://localhost:5001/api/tenants/pending', {
+      const res = await fetch(`${API_BASE}/api/tenants/pending`, {
         credentials: 'include',
       });
       const data = await res.json();
@@ -122,7 +123,7 @@ function AdminDashboard() {
 
   async function loadUnits() {
     try {
-      const res = await fetch('http://localhost:5001/api/units', {
+      const res = await fetch(`${API_BASE}/api/units`, {
         credentials: 'include',
       });
       const data = await res.json();
@@ -138,7 +139,7 @@ function AdminDashboard() {
 
   async function loadProperties() {
     try {
-      const res = await fetch('http://localhost:5001/api/properties', {
+      const res = await fetch(`${API_BASE}/api/properties`, {
         credentials: 'include',
       });
       const data = await res.json();
@@ -154,7 +155,7 @@ function AdminDashboard() {
       return;
     }
     try {
-      const res = await fetch('http://localhost:5001/api/properties', {
+      const res = await fetch(`${API_BASE}/api/properties`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -188,7 +189,7 @@ function AdminDashboard() {
     if (!confirmed) return;
 
     try {
-      const res = await fetch(`http://localhost:5001/api/properties/${propertyId}`, {
+      const res = await fetch(`${API_BASE}/api/properties/${propertyId}`, {
         method: 'DELETE',
         credentials: 'include',
       });
@@ -210,7 +211,7 @@ function AdminDashboard() {
       return;
     }
     try {
-      const res = await fetch(`http://localhost:5001/api/properties/${newUnitPropertyId}/units`, {
+      const res = await fetch(`${API_BASE}/api/properties/${newUnitPropertyId}/units`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -265,7 +266,7 @@ function AdminDashboard() {
     try {
       const results = await Promise.all(
         bulkSelectedUnits.map((unitId) =>
-          fetch(`http://localhost:5001/api/units/${unitId}`, {
+          fetch(`${API_BASE}/api/units/${unitId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
@@ -298,7 +299,7 @@ function AdminDashboard() {
     if (!confirmed) return;
 
     try {
-      const res = await fetch(`http://localhost:5001/api/units/${unitId}`, {
+      const res = await fetch(`${API_BASE}/api/units/${unitId}`, {
         method: 'DELETE',
         credentials: 'include',
       });
@@ -316,7 +317,7 @@ function AdminDashboard() {
 
   async function loadTenants() {
     try {
-      const res = await fetch('http://localhost:5001/api/tenants', {
+      const res = await fetch(`${API_BASE}/api/tenants`, {
         credentials: 'include',
       });
       const data = await res.json();
@@ -347,28 +348,28 @@ function AdminDashboard() {
 
   async function handleDownloadReceipt(paymentId) {
     await downloadPdf(
-      `http://localhost:5001/api/payments/${paymentId}/receipt/pdf`,
+      `${API_BASE}/api/payments/${paymentId}/receipt/pdf`,
       `receipt-RCT-${String(paymentId).padStart(5, '0')}.pdf`
     );
   }
 
   async function handleDownloadDepositReceipt(tenantId) {
     await downloadPdf(
-      `http://localhost:5001/api/tenants/${tenantId}/deposit-receipt/pdf`,
+      `${API_BASE}/api/tenants/${tenantId}/deposit-receipt/pdf`,
       `deposit-receipt-DEP-${String(tenantId).padStart(5, '0')}.pdf`
     );
   }
 
   async function handleDownloadAgreement(tenant) {
     await downloadPdf(
-      `http://localhost:5001/api/tenants/${tenant.user_id}/agreement/pdf`,
+      `${API_BASE}/api/tenants/${tenant.user_id}/agreement/pdf`,
       `tenancy-agreement-house-${tenant.unit_id}.pdf`
     );
   }
 
   async function handleDownloadVacateReceipt(tenantId) {
     await downloadPdf(
-      `http://localhost:5001/api/tenants/${tenantId}/vacate-receipt/pdf`,
+      `${API_BASE}/api/tenants/${tenantId}/vacate-receipt/pdf`,
       `vacate-settlement-VAC-${String(tenantId).padStart(5, '0')}.pdf`
     );
   }
@@ -381,7 +382,7 @@ function AdminDashboard() {
     setManualError('');
     setSubmittingManual(true);
     try {
-      const res = await fetch('http://localhost:5001/api/payments/manual', {
+      const res = await fetch(`${API_BASE}/api/payments/manual`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -423,7 +424,7 @@ function AdminDashboard() {
 
   async function loadPayments() {
     try {
-      const res = await fetch('http://localhost:5001/api/payments', {
+      const res = await fetch(`${API_BASE}/api/payments`, {
         credentials: 'include',
       });
       const data = await res.json();
@@ -438,7 +439,7 @@ function AdminDashboard() {
 
   async function loadExpenses() {
     try {
-      const res = await fetch ('http://localhost:5001/api/expenses', {
+      const res = await fetch (`${API_BASE}/api/expenses`, {
         credentials: 'include',
       });
       const data = await res.json();
@@ -460,7 +461,7 @@ function AdminDashboard() {
     try {
       const responses = await Promise.all(
         waterUnits.map((u) =>
-          fetch(`http://localhost:5001/api/water-bills/${u.unit_id}`, { credentials: 'include' })
+          fetch(`${API_BASE}/api/water-bills/${u.unit_id}`, { credentials: 'include' })
         )
       );
       if (responses.some((r) => !r.ok)) return;
@@ -487,7 +488,7 @@ function AdminDashboard() {
 
   async function loadInvoices() {
     try {
-      const res = await fetch('http://localhost:5001/api/invoices', {
+      const res = await fetch(`${API_BASE}/api/invoices`, {
         credentials: 'include',
       });
       const data = await res.json();
@@ -505,7 +506,7 @@ function AdminDashboard() {
     setInvoiceError('');
     setGeneratingInvoice(true);
     try {
-      const res = await fetch('http://localhost:5001/api/invoices', {
+      const res = await fetch(`${API_BASE}/api/invoices`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -533,7 +534,7 @@ function AdminDashboard() {
 
     setGeneratingInvoice(true);
     try {
-      const res = await fetch('http://localhost:5001/api/invoices/generate-monthly', {
+      const res = await fetch(`${API_BASE}/api/invoices/generate-monthly`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -555,14 +556,14 @@ function AdminDashboard() {
 
   async function handleDownloadInvoiceReceipt(invoiceId) {
     await downloadPdf(
-      `http://localhost:5001/api/invoices/${invoiceId}/receipt/pdf`,
+      `${API_BASE}/api/invoices/${invoiceId}/receipt/pdf`,
       `rent-receipt-INV-${String(invoiceId).padStart(5, '0')}.pdf`
     );
   }
 
   async function handleDeleteInvoice(invoiceId) {
     try {
-      const res = await fetch(`http://localhost:5001/api/invoices/${invoiceId}`, {
+      const res = await fetch(`${API_BASE}/api/invoices/${invoiceId}`, {
         method: 'DELETE',
         credentials: 'include',
       });
@@ -579,7 +580,7 @@ function AdminDashboard() {
 
   async function loadMessages() {
     try {
-      const res = await fetch ('http://localhost:5001/api/messages', {
+      const res = await fetch (`${API_BASE}/api/messages`, {
         credentials: 'include',
       });
       const data = await res.json();
@@ -637,7 +638,7 @@ function AdminDashboard() {
   const availableMonths = [...new Set(allPayments.map((p) => p.month))];
 
   function handleLogout() {
-    fetch('http://localhost:5001/api/auth/logout', {
+    fetch(`${API_BASE}/api/auth/logout`, {
       method: 'POST',
       credentials: 'include',
     }).finally(() => {
@@ -647,7 +648,7 @@ function AdminDashboard() {
 
   async function handleApprove(userId, unitId) {
     try {
-      const res = await fetch(`http://localhost:5001/api/tenants/${userId}/approve`, {
+      const res = await fetch(`${API_BASE}/api/tenants/${userId}/approve`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -672,7 +673,7 @@ function AdminDashboard() {
     if (!confirmed) return;
 
     try {
-      const res = await fetch(`http://localhost:5001/api/tenants/${userId}/reject`, {
+      const res = await fetch(`${API_BASE}/api/tenants/${userId}/reject`, {
         method: 'DELETE',
         credentials: 'include',
       });
@@ -690,7 +691,7 @@ function AdminDashboard() {
 
   async function loadAgents() {
     try {
-      const res = await fetch('http://localhost:5001/api/agents', { credentials: 'include' });
+      const res = await fetch(`${API_BASE}/api/agents`, { credentials: 'include' });
       const data = await res.json();
       if (res.ok) setAgents(data);
     } catch (err) {
@@ -700,7 +701,7 @@ function AdminDashboard() {
 
   async function loadPendingAgents() {
     try {
-      const res = await fetch('http://localhost:5001/api/agents/pending', { credentials: 'include' });
+      const res = await fetch(`${API_BASE}/api/agents/pending`, { credentials: 'include' });
       const data = await res.json();
       if (res.ok) setPendingAgents(data);
     } catch (err) {
@@ -710,7 +711,7 @@ function AdminDashboard() {
 
   async function handleApproveAgent(userId) {
     try {
-      const res = await fetch(`http://localhost:5001/api/agents/${userId}/approve`, {
+      const res = await fetch(`${API_BASE}/api/agents/${userId}/approve`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -734,7 +735,7 @@ function AdminDashboard() {
     if (!confirmed) return;
 
     try {
-      const res = await fetch(`http://localhost:5001/api/agents/${userId}/reject`, {
+      const res = await fetch(`${API_BASE}/api/agents/${userId}/reject`, {
         method: 'DELETE',
         credentials: 'include',
       });
@@ -752,7 +753,7 @@ function AdminDashboard() {
 
   async function loadPasswordResetRequests() {
     try {
-      const res = await fetch('http://localhost:5001/api/auth/password-reset-requests', { credentials: 'include' });
+      const res = await fetch(`${API_BASE}/api/auth/password-reset-requests`, { credentials: 'include' });
       const data = await res.json();
       if (res.ok) setPasswordResetRequests(data);
     } catch (err) {
@@ -765,7 +766,7 @@ function AdminDashboard() {
     if (!confirmed) return;
 
     try {
-      const res = await fetch(`http://localhost:5001/api/auth/password-reset-requests/${userId}/approve`, {
+      const res = await fetch(`${API_BASE}/api/auth/password-reset-requests/${userId}/approve`, {
         method: 'PUT',
         credentials: 'include',
       });
@@ -786,7 +787,7 @@ function AdminDashboard() {
     if (!confirmed) return;
 
     try {
-      const res = await fetch(`http://localhost:5001/api/auth/password-reset-requests/${userId}`, {
+      const res = await fetch(`${API_BASE}/api/auth/password-reset-requests/${userId}`, {
         method: 'DELETE',
         credentials: 'include',
       });
@@ -835,7 +836,7 @@ function AdminDashboard() {
 
   async function handleSaveUnit(unitId) {
     try {
-      const res = await fetch(`http://localhost:5001/api/units/${unitId}`, {
+      const res = await fetch(`${API_BASE}/api/units/${unitId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -860,7 +861,7 @@ function AdminDashboard() {
 
   async function handleStatusChange(unitId, newStatus) {
     try {
-      const res = await fetch(`http://localhost:5001/api/units/${unitId}`, {
+      const res = await fetch(`${API_BASE}/api/units/${unitId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -894,7 +895,7 @@ function AdminDashboard() {
     setVacatePhotos([null, null, null]);
 
     try {
-      const res = await fetch(`http://localhost:5001/api/tenants/${tenant.user_id}/vacate-preview`, {
+      const res = await fetch(`${API_BASE}/api/tenants/${tenant.user_id}/vacate-preview`, {
         credentials: 'include',
       });
       const data = await res.json();
@@ -960,7 +961,7 @@ function AdminDashboard() {
         if (file) formData.append(`photo${i + 1}`, file);
       });
 
-      const res = await fetch(`http://localhost:5001/api/tenants/${vacatingTenant.user_id}/vacate`, {
+      const res = await fetch(`${API_BASE}/api/tenants/${vacatingTenant.user_id}/vacate`, {
         method: 'PUT',
         credentials: 'include',
         body: formData,
@@ -995,7 +996,7 @@ function AdminDashboard() {
     setViewingDeductionsFor(tenant.user_id);
     setDeductionsData(null);
     try {
-      const res = await fetch(`http://localhost:5001/api/tenants/${tenant.user_id}/deductions`, {
+      const res = await fetch(`${API_BASE}/api/tenants/${tenant.user_id}/deductions`, {
         credentials: 'include',
       });
       const data = await res.json();
@@ -1034,7 +1035,7 @@ function AdminDashboard() {
     }
 
     try {
-      const res = await fetch(`http://localhost:5001/api/tenants/${tenant.user_id}/unvacate`, {
+      const res = await fetch(`${API_BASE}/api/tenants/${tenant.user_id}/unvacate`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -1069,7 +1070,7 @@ function AdminDashboard() {
     }
 
     try {
-      const res = await fetch(`http://localhost:5001/api/tenants/${tenant.user_id}/deposit`, {
+      const res = await fetch(`${API_BASE}/api/tenants/${tenant.user_id}/deposit`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -1089,7 +1090,7 @@ function AdminDashboard() {
 
   async function handleVerifyId(tenant) {
     try {
-      const res = await fetch(`http://localhost:5001/api/tenants/${tenant.user_id}/verify-id`, {
+      const res = await fetch(`${API_BASE}/api/tenants/${tenant.user_id}/verify-id`, {
         method: 'PUT',
         credentials: 'include',
       });
@@ -1117,7 +1118,7 @@ function AdminDashboard() {
     if (!confirmed) return;
 
     try {
-      const res = await fetch(`http://localhost:5001/api/tenants/${tenant.user_id}/request-id`, {
+      const res = await fetch(`${API_BASE}/api/tenants/${tenant.user_id}/request-id`, {
         method: 'PUT',
         credentials: 'include',
       });
@@ -1157,7 +1158,7 @@ function AdminDashboard() {
     }
 
     try {
-      const res = await fetch('http://localhost:5001/api/expenses', {
+      const res = await fetch(`${API_BASE}/api/expenses`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -1187,7 +1188,7 @@ function AdminDashboard() {
     if (!confirmed) return;
 
     try {
-      const res = await fetch(`http://localhost:5001/api/expenses/${id}`, {
+      const res = await fetch(`${API_BASE}/api/expenses/${id}`, {
         method: 'DELETE',
         credentials: 'include',
       });
@@ -1244,7 +1245,7 @@ function AdminDashboard() {
   }
 
   async function sendOneMessage(phone) {
-    const res = await fetch('http://localhost:5001/api/messages/send', {
+    const res = await fetch(`${API_BASE}/api/messages/send`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
@@ -1298,7 +1299,7 @@ function AdminDashboard() {
     }
 
     try {
-      const res = await fetch('http://localhost:5001/api/water-bills', {
+      const res = await fetch(`${API_BASE}/api/water-bills`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -1825,7 +1826,7 @@ function AdminDashboard() {
                             {tenant.id_photo_path ? (
                               <>
                                 <a
-                                  href={`http://localhost:5001${tenant.id_photo_path}`}
+                                  href={`${API_BASE}${tenant.id_photo_path}`}
                                   target="_blank"
                                   rel="noreferrer"
                                   style={styles.editBtn}
@@ -1998,8 +1999,8 @@ function AdminDashboard() {
                             {deductionsData.photos.length > 0 && (
                               <div style={styles.photoRow}>
                                 {deductionsData.photos.map((p) => (
-                                  <a key={p.photo_id} href={`http://localhost:5001${p.file_path}`} target="_blank" rel="noreferrer">
-                                    <img src={`http://localhost:5001${p.file_path}`} alt="Evidence" style={styles.evidenceThumb} />
+                                  <a key={p.photo_id} href={`${API_BASE}${p.file_path}`} target="_blank" rel="noreferrer">
+                                    <img src={`${API_BASE}${p.file_path}`} alt="Evidence" style={styles.evidenceThumb} />
                                   </a>
                                 ))}
                               </div>

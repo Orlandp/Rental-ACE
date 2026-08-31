@@ -1,0 +1,13 @@
+node_modules/
+build/
+__pycache__/
+*.pyc
+*.pyo
+.env
+.env.local
+.env.production.local
+cookies.txt
+tenant_cookies.txt
+backend/rental.db
+backend/uploads/
+.DS_Store

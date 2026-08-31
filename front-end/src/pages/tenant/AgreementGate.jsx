@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { API_BASE } from '../../config';
 
 function AgreementGate({ onSigned, photoOnly }) {
 
@@ -13,7 +14,7 @@ function AgreementGate({ onSigned, photoOnly }) {
   useEffect(() => {
     async function loadAgreement() {
       try {
-        const res = await fetch('http://localhost:5001/api/tenants/me/agreement', {
+        const res = await fetch(`${API_BASE}/api/tenants/me/agreement`, {
           credentials: 'include',
         });
         const data = await res.json();
@@ -33,7 +34,7 @@ function AgreementGate({ onSigned, photoOnly }) {
 
   async function handleDownloadPdf() {
     try {
-      const res = await fetch('http://localhost:5001/api/tenants/me/agreement/pdf', {
+      const res = await fetch(`${API_BASE}/api/tenants/me/agreement/pdf`, {
         credentials: 'include',
       });
       if (!res.ok) {
@@ -74,7 +75,7 @@ function AgreementGate({ onSigned, photoOnly }) {
       const formData = new FormData();
       formData.append('id_photo', idPhotoFile);
 
-      const res = await fetch('http://localhost:5001/api/tenants/me/agreement/sign', {
+      const res = await fetch(`${API_BASE}/api/tenants/me/agreement/sign`, {
         method: 'POST',
         credentials: 'include',
         body: formData,

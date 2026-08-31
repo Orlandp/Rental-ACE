@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { API_BASE } from '../config';
 
 function RegisterPage() {
 
@@ -19,7 +20,7 @@ function RegisterPage() {
   const [loading, setLoading]                     = useState(false);
 
   useEffect(() => {
-    fetch('http://localhost:5001/api/properties')
+    fetch(`${API_BASE}/api/properties`)
       .then(res => res.json())
       .then(data => setProperties(data))
       .catch(err => console.error('Could not load properties:', err));
@@ -78,7 +79,7 @@ function RegisterPage() {
     }
 
     try {
-      const response = await fetch('http://localhost:5001/api/auth/register', {
+      const response = await fetch(`${API_BASE}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

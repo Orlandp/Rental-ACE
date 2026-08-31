@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { API_BASE } from '../config';
 
 function useIdleLogout (timeoutMinutes) {
     const timerRef = useRef(null);
@@ -7,7 +8,7 @@ function useIdleLogout (timeoutMinutes) {
         const timeoutMs = timeoutMinutes * 60 * 1000;
         
         function logout() {
-            fetch('http://localhost:5001/api/auth/logout', {
+            fetch(`${API_BASE}/api/auth/logout`, {
                 method: 'POST',
                 credentials: 'include',
             }).finally(() => {

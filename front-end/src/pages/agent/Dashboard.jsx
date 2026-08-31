@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import useIdleLogout from '../../hooks/useIdleLogout';
 import useBackButtonLogout from '../../hooks/useBackButtonLogout';
+import { API_BASE } from '../../config';
 
 function getNextBillingPeriod(bills) {
   if (!bills || bills.length === 0) {
@@ -70,7 +71,7 @@ function AgentDashboard() {
 
   async function loadTenants() {
     try {
-      const res = await fetch('http://localhost:5001/api/agents/me/tenants', { credentials: 'include' });
+      const res = await fetch(`${API_BASE}/api/agents/me/tenants`, { credentials: 'include' });
       const data = await res.json();
       if (res.ok) {
         setTenants(data);
@@ -84,7 +85,7 @@ function AgentDashboard() {
 
   async function loadPending() {
     try {
-      const res = await fetch('http://localhost:5001/api/tenants/pending', { credentials: 'include' });
+      const res = await fetch(`${API_BASE}/api/tenants/pending`, { credentials: 'include' });
       const data = await res.json();
       if (res.ok) setPending(data);
     } catch (err) {
@@ -94,7 +95,7 @@ function AgentDashboard() {
 
   async function loadUnits() {
     try {
-      const res = await fetch('http://localhost:5001/api/units', { credentials: 'include' });
+      const res = await fetch(`${API_BASE}/api/units`, { credentials: 'include' });
       const data = await res.json();
       if (res.ok) {
         setUnits(data);
@@ -108,7 +109,7 @@ function AgentDashboard() {
 
   async function loadExpenses() {
     try {
-      const res = await fetch('http://localhost:5001/api/expenses', { credentials: 'include' });
+      const res = await fetch(`${API_BASE}/api/expenses`, { credentials: 'include' });
       const data = await res.json();
       if (res.ok) setExpenses(data);
     } catch (err) {
@@ -118,7 +119,7 @@ function AgentDashboard() {
 
   async function loadPayments() {
     try {
-      const res = await fetch('http://localhost:5001/api/payments', { credentials: 'include' });
+      const res = await fetch(`${API_BASE}/api/payments`, { credentials: 'include' });
       const data = await res.json();
       if (res.ok) setPayments(data);
     } catch (err) {
@@ -128,7 +129,7 @@ function AgentDashboard() {
 
   async function loadInvoices() {
     try {
-      const res = await fetch('http://localhost:5001/api/invoices', { credentials: 'include' });
+      const res = await fetch(`${API_BASE}/api/invoices`, { credentials: 'include' });
       const data = await res.json();
       if (res.ok) setInvoices(data);
     } catch (err) {
@@ -148,7 +149,7 @@ function AgentDashboard() {
     setManualError('');
     setSubmittingManual(true);
     try {
-      const res = await fetch('http://localhost:5001/api/payments/manual', {
+      const res = await fetch(`${API_BASE}/api/payments/manual`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -200,7 +201,7 @@ function AgentDashboard() {
     try {
       const responses = await Promise.all(
         waterUnits.map((u) =>
-          fetch(`http://localhost:5001/api/water-bills/${u.unit_id}`, { credentials: 'include' })
+          fetch(`${API_BASE}/api/water-bills/${u.unit_id}`, { credentials: 'include' })
         )
       );
       if (responses.some((r) => !r.ok)) return;
@@ -225,7 +226,7 @@ function AgentDashboard() {
   useEffect(() => {
     async function loadData() {
       try {
-        const meRes = await fetch('http://localhost:5001/api/auth/me', { credentials: 'include' });
+        const meRes = await fetch(`${API_BASE}/api/auth/me`, { credentials: 'include' });
         const me = await meRes.json();
         if (!meRes.ok) {
           setError(me.error || 'Could not load your details.');
@@ -234,7 +235,7 @@ function AgentDashboard() {
         setAgent(me);
 
         if (me.assigned_property_id) {
-          const propRes = await fetch(`http://localhost:5001/api/properties/${me.assigned_property_id}`, {
+          const propRes = await fetch(`${API_BASE}/api/properties/${me.assigned_property_id}`, {
             credentials: 'include',
           });
           const propData = await propRes.json();
@@ -260,7 +261,7 @@ function AgentDashboard() {
   }, []);
 
   function handleLogout() {
-    fetch('http://localhost:5001/api/auth/logout', {
+    fetch(`${API_BASE}/api/auth/logout`, {
       method: 'POST',
       credentials: 'include',
     }).finally(() => {
@@ -270,7 +271,7 @@ function AgentDashboard() {
 
   async function loadPasswordResetRequests() {
     try {
-      const res = await fetch('http://localhost:5001/api/auth/password-reset-requests', { credentials: 'include' });
+      const res = await fetch(`${API_BASE}/api/auth/password-reset-requests`, { credentials: 'include' });
       const data = await res.json();
       if (res.ok) setPasswordResetRequests(data);
     } catch (err) {
@@ -283,7 +284,7 @@ function AgentDashboard() {
     if (!confirmed) return;
 
     try {
-      const res = await fetch(`http://localhost:5001/api/auth/password-reset-requests/${userId}/approve`, {
+      const res = await fetch(`${API_BASE}/api/auth/password-reset-requests/${userId}/approve`, {
         method: 'PUT',
         credentials: 'include',
       });
@@ -304,7 +305,7 @@ function AgentDashboard() {
     if (!confirmed) return;
 
     try {
-      const res = await fetch(`http://localhost:5001/api/auth/password-reset-requests/${userId}`, {
+      const res = await fetch(`${API_BASE}/api/auth/password-reset-requests/${userId}`, {
         method: 'DELETE',
         credentials: 'include',
       });
@@ -334,7 +335,7 @@ function AgentDashboard() {
     }
 
     try {
-      const res = await fetch(`http://localhost:5001/api/tenants/${tenant.user_id}/deposit`, {
+      const res = await fetch(`${API_BASE}/api/tenants/${tenant.user_id}/deposit`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -354,7 +355,7 @@ function AgentDashboard() {
 
   async function handleVerifyId(tenant) {
     try {
-      const res = await fetch(`http://localhost:5001/api/tenants/${tenant.user_id}/verify-id`, {
+      const res = await fetch(`${API_BASE}/api/tenants/${tenant.user_id}/verify-id`, {
         method: 'PUT',
         credentials: 'include',
       });
@@ -381,7 +382,7 @@ function AgentDashboard() {
     if (!confirmed) return;
 
     try {
-      const res = await fetch(`http://localhost:5001/api/tenants/${tenant.user_id}/request-id`, {
+      const res = await fetch(`${API_BASE}/api/tenants/${tenant.user_id}/request-id`, {
         method: 'PUT',
         credentials: 'include',
       });
@@ -418,21 +419,21 @@ function AgentDashboard() {
 
   async function handleDownloadAgreement(tenant) {
     await downloadFile(
-      `http://localhost:5001/api/tenants/${tenant.user_id}/agreement/pdf`,
+      `${API_BASE}/api/tenants/${tenant.user_id}/agreement/pdf`,
       `tenancy-agreement-house-${tenant.unit_number}.pdf`
     );
   }
 
   async function handleDownloadPaymentReceipt(paymentId) {
     await downloadFile(
-      `http://localhost:5001/api/payments/${paymentId}/receipt/pdf`,
+      `${API_BASE}/api/payments/${paymentId}/receipt/pdf`,
       `receipt-RCT-${String(paymentId).padStart(5, '0')}.pdf`
     );
   }
 
   async function handleApprovePending(applicantId) {
     try {
-      const res = await fetch(`http://localhost:5001/api/tenants/${applicantId}/approve`, {
+      const res = await fetch(`${API_BASE}/api/tenants/${applicantId}/approve`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -457,7 +458,7 @@ function AgentDashboard() {
     if (!confirmed) return;
 
     try {
-      const res = await fetch(`http://localhost:5001/api/tenants/${applicantId}/reject`, {
+      const res = await fetch(`${API_BASE}/api/tenants/${applicantId}/reject`, {
         method: 'DELETE',
         credentials: 'include',
       });
@@ -482,7 +483,7 @@ function AgentDashboard() {
     setAddError('');
     setAddSubmitting(true);
     try {
-      const res = await fetch('http://localhost:5001/api/agents/me/tenants', {
+      const res = await fetch(`${API_BASE}/api/agents/me/tenants`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -523,7 +524,7 @@ function AgentDashboard() {
       return;
     }
     try {
-      const res = await fetch('http://localhost:5001/api/expenses', {
+      const res = await fetch(`${API_BASE}/api/expenses`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -560,7 +561,7 @@ function AgentDashboard() {
     }
 
     try {
-      const res = await fetch('http://localhost:5001/api/water-bills', {
+      const res = await fetch(`${API_BASE}/api/water-bills`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -585,7 +586,7 @@ function AgentDashboard() {
 
   async function handleDownloadWaterReceipt(billId) {
     await downloadFile(
-      `http://localhost:5001/api/water-bills/${billId}/receipt/pdf`,
+      `${API_BASE}/api/water-bills/${billId}/receipt/pdf`,
       `water-receipt-WTR-${String(billId).padStart(5, '0')}.pdf`
     );
   }
@@ -597,7 +598,7 @@ function AgentDashboard() {
     setVacatePhotos([null, null, null]);
 
     try {
-      const res = await fetch(`http://localhost:5001/api/tenants/${tenant.user_id}/vacate-preview`, {
+      const res = await fetch(`${API_BASE}/api/tenants/${tenant.user_id}/vacate-preview`, {
         credentials: 'include',
       });
       const data = await res.json();
@@ -663,7 +664,7 @@ function AgentDashboard() {
         if (file) formData.append(`photo${i + 1}`, file);
       });
 
-      const res = await fetch(`http://localhost:5001/api/tenants/${vacatingTenant.user_id}/vacate`, {
+      const res = await fetch(`${API_BASE}/api/tenants/${vacatingTenant.user_id}/vacate`, {
         method: 'PUT',
         credentials: 'include',
         body: formData,
@@ -697,7 +698,7 @@ function AgentDashboard() {
     setViewingDeductionsFor(tenantId);
     setDeductionsData(null);
     try {
-      const res = await fetch(`http://localhost:5001/api/tenants/${tenantId}/deductions`, {
+      const res = await fetch(`${API_BASE}/api/tenants/${tenantId}/deductions`, {
         credentials: 'include',
       });
       const data = await res.json();
@@ -709,7 +710,7 @@ function AgentDashboard() {
 
   async function handleDownloadVacateReceipt(tenantId) {
     await downloadFile(
-      `http://localhost:5001/api/tenants/${tenantId}/vacate-receipt/pdf`,
+      `${API_BASE}/api/tenants/${tenantId}/vacate-receipt/pdf`,
       `vacate-receipt-${tenantId}.pdf`
     );
   }
@@ -719,7 +720,7 @@ function AgentDashboard() {
     if (!confirmed) return;
 
     try {
-      const res = await fetch(`http://localhost:5001/api/tenants/${tenant.user_id}/unvacate`, {
+      const res = await fetch(`${API_BASE}/api/tenants/${tenant.user_id}/unvacate`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -889,7 +890,7 @@ function AgentDashboard() {
                       {tenant.id_photo_path ? (
                         <>
                           <a
-                            href={`http://localhost:5001${tenant.id_photo_path}`}
+                            href={`${API_BASE}${tenant.id_photo_path}`}
                             target="_blank"
                             rel="noreferrer"
                             style={styles.editBtn}
@@ -1059,8 +1060,8 @@ function AgentDashboard() {
                             {deductionsData.photos.length > 0 && (
                               <div style={styles.photoRow}>
                                 {deductionsData.photos.map((p) => (
-                                  <a key={p.photo_id} href={`http://localhost:5001${p.file_path}`} target="_blank" rel="noreferrer">
-                                    <img src={`http://localhost:5001${p.file_path}`} alt="Evidence" style={styles.evidenceThumb} />
+                                  <a key={p.photo_id} href={`${API_BASE}${p.file_path}`} target="_blank" rel="noreferrer">
+                                    <img src={`${API_BASE}${p.file_path}`} alt="Evidence" style={styles.evidenceThumb} />
                                   </a>
                                 ))}
                               </div>

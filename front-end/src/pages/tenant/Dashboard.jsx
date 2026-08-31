@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import useIdleLogout from '../../hooks/useIdleLogout';
 import useBackButtonLogout from '../../hooks/useBackButtonLogout';
 import AgreementGate from './AgreementGate';
+import { API_BASE } from '../../config';
 
 function TenantDashboard() {
 
@@ -17,7 +18,7 @@ function TenantDashboard() {
   useEffect(() => {
     async function loadData() {
       try {
-        const summaryRes = await fetch('http://localhost:5001/api/tenants/me/summary', {
+        const summaryRes = await fetch(`${API_BASE}/api/tenants/me/summary`, {
           credentials: 'include',
         });
         const summaryData = await summaryRes.json();
@@ -27,13 +28,13 @@ function TenantDashboard() {
         }
         setTenant(summaryData);
 
-        const paymentsRes = await fetch('http://localhost:5001/api/payments', {
+        const paymentsRes = await fetch(`${API_BASE}/api/payments`, {
           credentials: 'include',
         });
         const paymentsData = await paymentsRes.json();
         if (paymentsRes.ok) setPayments(paymentsData);
 
-        const invoicesRes = await fetch('http://localhost:5001/api/invoices', {
+        const invoicesRes = await fetch(`${API_BASE}/api/invoices`, {
           credentials: 'include',
         });
         const invoicesData = await invoicesRes.json();
@@ -48,7 +49,7 @@ function TenantDashboard() {
   }, []);
 
   function handleLogout() {
-    fetch('http://localhost:5001/api/auth/logout', {
+    fetch(`${API_BASE}/api/auth/logout`, {
       method: 'POST',
       credentials: 'include',
     }).finally(() => {
@@ -62,7 +63,7 @@ function TenantDashboard() {
 
   async function handleDownloadReceipt(paymentId) {
     try {
-      const res = await fetch(`http://localhost:5001/api/payments/${paymentId}/receipt/pdf`, {
+      const res = await fetch(`${API_BASE}/api/payments/${paymentId}/receipt/pdf`, {
         credentials: 'include',
       });
       if (!res.ok) {
@@ -83,7 +84,7 @@ function TenantDashboard() {
 
   async function handleDownloadInvoiceReceipt(invoiceId) {
     try {
-      const res = await fetch(`http://localhost:5001/api/invoices/${invoiceId}/receipt/pdf`, {
+      const res = await fetch(`${API_BASE}/api/invoices/${invoiceId}/receipt/pdf`, {
         credentials: 'include',
       });
       if (!res.ok) {
@@ -104,7 +105,7 @@ function TenantDashboard() {
 
   async function handleDownloadAgreement() {
     try {
-      const res = await fetch('http://localhost:5001/api/tenants/me/agreement/pdf', {
+      const res = await fetch(`${API_BASE}/api/tenants/me/agreement/pdf`, {
         credentials: 'include',
       });
       if (!res.ok) {
@@ -125,7 +126,7 @@ function TenantDashboard() {
 
   async function handleDownloadDepositReceipt() {
     try {
-      const res = await fetch(`http://localhost:5001/api/tenants/${tenant.user_id}/deposit-receipt/pdf`, {
+      const res = await fetch(`${API_BASE}/api/tenants/${tenant.user_id}/deposit-receipt/pdf`, {
         credentials: 'include',
       });
       if (!res.ok) {

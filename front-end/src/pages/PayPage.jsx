@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { API_BASE } from '../config';
 
 function PayPage() {
 
@@ -32,7 +33,7 @@ function PayPage() {
     async function fetchHouseUnits(propId) {
       setHousesLoading(true);
       try {
-        const res = await fetch(`http://localhost:5001/api/properties/${propId}/units/public`);
+        const res = await fetch(`${API_BASE}/api/properties/${propId}/units/public`);
         const data = await res.json();
         setHouseUnits(res.ok && data.units ? data.units : []);
       } catch (err) {
@@ -47,7 +48,7 @@ function PayPage() {
         // No unit given — show the "select your property, then your house"
         // screen. This scales automatically as more properties are added.
         try {
-          const res = await fetch('http://localhost:5001/api/properties');
+          const res = await fetch(`${API_BASE}/api/properties`);
           const data = await res.json();
           if (res.ok && Array.isArray(data) && data.length > 0) {
             setPropertyList(data);
@@ -65,7 +66,7 @@ function PayPage() {
         return;
       }
       try {
-        const res = await fetch(`http://localhost:5001/api/units/${unitId}/public`);
+        const res = await fetch(`${API_BASE}/api/units/${unitId}/public`);
         const data = await res.json();
         if (!res.ok) {
           setError(data.error || 'House not found. Please use the payment link sent to you.');
@@ -90,7 +91,7 @@ function PayPage() {
     setSelectedHouseUnit('');
     setHousesLoading(true);
     try {
-      const res = await fetch(`http://localhost:5001/api/properties/${newPropertyId}/units/public`);
+      const res = await fetch(`${API_BASE}/api/properties/${newPropertyId}/units/public`);
       const data = await res.json();
       setHouseUnits(res.ok && data.units ? data.units : []);
     } catch (err) {
@@ -123,7 +124,7 @@ function PayPage() {
     setPaying(true);
 
     try {
-      const res = await fetch('http://localhost:5001/api/payments', {
+      const res = await fetch(`${API_BASE}/api/payments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

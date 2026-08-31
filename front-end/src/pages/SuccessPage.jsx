@@ -1,4 +1,5 @@
 import React, { useState, useEffect} from 'react';
+import { API_BASE } from '../config';
 
 function SuccessPage() {
 
@@ -37,7 +38,7 @@ function SuccessPage() {
             const codeParam = mpesaCode && mpesaCode !== 'pending confirmation'
                 ? `?code=${encodeURIComponent(mpesaCode)}`
                 : '';
-            const res = await fetch(`http://localhost:5001/api/payments/${paymentId}/receipt/pdf${codeParam}`, {
+            const res = await fetch(`${API_BASE}/api/payments/${paymentId}/receipt/pdf${codeParam}`, {
                 credentials: 'include',
             });
             if (!res.ok) {

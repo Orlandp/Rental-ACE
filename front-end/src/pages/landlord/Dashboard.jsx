@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import useIdleLogout from '../../hooks/useIdleLogout';
 import useBackButtonLogout from '../../hooks/useBackButtonLogout';
+import { API_BASE } from '../../config';
 
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -37,34 +38,34 @@ function LandlordDashboard() {
   useEffect(() => {
     async function loadData() {
       try {
-        const meRes = await fetch('http://localhost:5001/api/auth/me', { credentials: 'include' });
+        const meRes = await fetch(`${API_BASE}/api/auth/me`, { credentials: 'include' });
         const me = await meRes.json();
         if (meRes.ok) setLandlord(me);
 
-        const propertiesRes = await fetch('http://localhost:5001/api/properties', { credentials: 'include' });
+        const propertiesRes = await fetch(`${API_BASE}/api/properties`, { credentials: 'include' });
         const propertiesData = await propertiesRes.json();
         if (propertiesRes.ok) setProperties(propertiesData);
 
-        const unitsRes = await fetch('http://localhost:5001/api/units', { credentials: 'include' });
+        const unitsRes = await fetch(`${API_BASE}/api/units`, { credentials: 'include' });
         const unitsData = await unitsRes.json();
         if (unitsRes.ok) setUnits(unitsData);
 
-        const tenantsRes = await fetch('http://localhost:5001/api/tenants', { credentials: 'include' });
+        const tenantsRes = await fetch(`${API_BASE}/api/tenants`, { credentials: 'include' });
         const tenantsData = await tenantsRes.json();
         if (tenantsRes.ok) setTenants(tenantsData);
 
-        const paymentsRes = await fetch('http://localhost:5001/api/payments', { credentials: 'include' });
+        const paymentsRes = await fetch(`${API_BASE}/api/payments`, { credentials: 'include' });
         const paymentsData = await paymentsRes.json();
         if (paymentsRes.ok) setAllPayments(paymentsData);
 
-        const expensesRes = await fetch('http://localhost:5001/api/expenses', { credentials: 'include' });
+        const expensesRes = await fetch(`${API_BASE}/api/expenses`, { credentials: 'include' });
         const expensesData = await expensesRes.json();
         if (expensesRes.ok) setAllExpenses(expensesData);
 
         const waterUnits = unitsRes.ok ? unitsData.filter((u) => u.has_water_bill) : [];
         if (waterUnits.length > 0) {
           const responses = await Promise.all(
-            waterUnits.map((u) => fetch(`http://localhost:5001/api/water-bills/${u.unit_id}`, { credentials: 'include' }))
+            waterUnits.map((u) => fetch(`${API_BASE}/api/water-bills/${u.unit_id}`, { credentials: 'include' }))
           );
           if (!responses.some((r) => !r.ok)) {
             const dataByUnit = await Promise.all(responses.map((r) => r.json()));
@@ -114,7 +115,7 @@ function LandlordDashboard() {
   }
 
   function handleLogout() {
-    fetch('http://localhost:5001/api/auth/logout', {
+    fetch(`${API_BASE}/api/auth/logout`, {
       method: 'POST',
       credentials: 'include',
     }).finally(() => {
@@ -130,7 +131,7 @@ function LandlordDashboard() {
   async function handleDownloadPDF() {
     const { month, year } = parseMonthYear(selectedMonth);
     try {
-      const res = await fetch(`http://localhost:5001/api/reports/pdf?month=${month}&year=${year}`, {
+      const res = await fetch(`${API_BASE}/api/reports/pdf?month=${month}&year=${year}`, {
         credentials: 'include',
       });
       if (!res.ok) {
@@ -152,7 +153,7 @@ function LandlordDashboard() {
   async function handleDownloadExcel() {
     const { month, year } = parseMonthYear(selectedMonth);
     try {
-      const res = await fetch(`http://localhost:5001/api/reports/excel?month=${month}&year=${year}`, {
+      const res = await fetch(`${API_BASE}/api/reports/excel?month=${month}&year=${year}`, {
         credentials: 'include',
       });
       if (!res.ok) {
