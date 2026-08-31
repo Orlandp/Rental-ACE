@@ -1,3 +1,4 @@
+from datetime import datetime
 from flask import Blueprint, request, jsonify
 from database import get_db
 from routes.decorators import role_required
@@ -16,11 +17,13 @@ def send_message():
     if not all([recipient, content]):
         return jsonify({'error': 'recipient and content are required'}), 400
 
+    now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
     conn = get_db()
     cursor = conn.execute('''
         INSERT INTO messages (recipient, content, sent_at, status)
-        VALUES (?, ?, datetime('now'), 'sent')
-    ''', (recipient, content))
+        VALUES (?, ?, ?, 'sent')
+    ''', (recipient, content, now))
 
     message_id = cursor.lastrowid
     conn.commit()

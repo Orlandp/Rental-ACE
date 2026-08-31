@@ -12,8 +12,8 @@ function TopBar({ houseId }) {
 
 const styles = {
   topBar: {
-    backgroundColor: '#1a7a4a',
-    color: 'white',
+    backgroundColor: 'var(--color-brand)',
+    color: 'var(--color-text-on-brand)',
     padding: '32px 20px 40px',
     textAlign: 'center',
   },

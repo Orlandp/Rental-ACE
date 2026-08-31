@@ -19,7 +19,7 @@ function RegisterPage() {
   const [loading, setLoading]                     = useState(false);
 
   useEffect(() => {
-    fetch('http://localhost:5000/api/properties')
+    fetch('http://localhost:5001/api/properties')
       .then(res => res.json())
       .then(data => setProperties(data))
       .catch(err => console.error('Could not load properties:', err));
@@ -44,7 +44,11 @@ function RegisterPage() {
       if (!property)    { setError('Please select your property.');   return; }
       if (!houseNumber) { setError('Please select your house number.'); return; }
     }
-    if ((role === 'admin' || role === 'landlord') && !secretCode.trim()) {
+    if (role === 'agent' && !property) {
+      setError('Please select the property you are assigned to.');
+      return;
+    }
+    if ((role === 'admin' || role === 'landlord' || role === 'agent') && !secretCode.trim()) {
       setError(`Please enter the ${role} secret code.`);
       return;
     }
@@ -61,7 +65,7 @@ function RegisterPage() {
       role,
     };
 
-    if (role === 'admin' || role === 'landlord') {
+    if (role === 'admin' || role === 'landlord' || role === 'agent') {
       payload.secret_code = secretCode.trim();
     }
 
@@ -69,8 +73,12 @@ function RegisterPage() {
       payload.unit_id = parseInt(houseNumber, 10);
     }
 
+    if (role === 'agent') {
+      payload.assigned_property_id = parseInt(property, 10);
+    }
+
     try {
-      const response = await fetch('http://localhost:5000/api/auth/register', {
+      const response = await fetch('http://localhost:5001/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -97,19 +105,20 @@ function RegisterPage() {
   if (step === 2) {
     return (
       <div style={styles.page}>
-        <div style={styles.card}>
-          <div style={styles.iconCircle}>{role === 'tenant' ? '⏳' : '✅'}</div>
+        <div style={styles.card} className="card-lift">
+          <div style={styles.iconCircle}>{(role === 'tenant' || role === 'agent') ? '⏳' : '✅'}</div>
           <h2 style={styles.title}>
-            {role === 'tenant' ? 'Registration Pending' : 'Account Created!'}
+            {(role === 'tenant' || role === 'agent') ? 'Registration Pending' : 'Account Created!'}
           </h2>
           <p style={styles.confirmText}>
-            {role === 'tenant'
-              ? 'Your account is awaiting admin approval. You will receive an SMS once approved.'
+            {(role === 'tenant' || role === 'agent')
+              ? 'Your account is awaiting admin approval. You will receive a WhatsApp message once approved.'
               : 'Your account is ready. You can now login.'}
           </p>
           <button
             onClick={() => window.location.href = '/login'}
             style={styles.registerBtn}
+            className="btn-lift"
           >
             Go to Login
           </button>
@@ -120,7 +129,7 @@ function RegisterPage() {
 
   return (
     <div style={styles.page}>
-      <div style={styles.card}>
+      <div style={styles.card} className="card-lift">
 
         <div style={styles.logoCircle}>🏠</div>
         <h2 style={styles.title}>Create Account</h2>
@@ -137,6 +146,7 @@ function RegisterPage() {
             onKeyDown={(e) => { if (e.key === 'Enter') focusNext('reg-username'); }}
             placeholder="e.g. James Orlando"
             style={styles.input}
+            className="input-field"
             autoFocus
           />
         </div>
@@ -152,6 +162,7 @@ function RegisterPage() {
             onKeyDown={(e) => { if (e.key === 'Enter') focusNext('reg-phone'); }}
             placeholder="e.g. james123"
             style={styles.input}
+            className="input-field"
           />
         </div>
 
@@ -167,6 +178,7 @@ function RegisterPage() {
             placeholder="e.g. 0712 345 678"
             maxLength={12}
             style={styles.input}
+            className="input-field"
           />
         </div>
 
@@ -181,6 +193,7 @@ function RegisterPage() {
             onKeyDown={(e) => { if (e.key === 'Enter') focusNext('reg-password'); }}
             placeholder="e.g. 12345678"
             style={styles.input}
+            className="input-field"
           />
         </div>
 
@@ -196,10 +209,12 @@ function RegisterPage() {
               onKeyDown={(e) => { if (e.key === 'Enter') focusNext('reg-confirm'); }}
               placeholder="Min 6 characters"
               style={styles.passwordInput}
+              className="input-field"
             />
             <button
               onClick={() => setShowPassword(!showPassword)}
               style={styles.showBtn}
+              className="btn-lift"
             >
               {showPassword ? 'Hide' : 'Show'}
             </button>
@@ -217,6 +232,7 @@ function RegisterPage() {
             onKeyDown={(e) => { if (e.key === 'Enter') handleRegister(); }}
             placeholder="Repeat password"
             style={styles.input}
+            className="input-field"
           />
         </div>
 
@@ -224,16 +240,17 @@ function RegisterPage() {
         <div style={styles.fieldGroup}>
           <p style={styles.fieldLabel}>I am a:</p>
           <div style={styles.roleRow}>
-            {['tenant', 'admin', 'landlord'].map((r) => (
+            {['tenant', 'admin', 'landlord', 'agent'].map((r) => (
               <button
                 key={r}
                 onClick={() => { setRole(r); setError(''); }}
                 style={{
                   ...styles.roleBtn,
-                  backgroundColor: role === r ? '#1a7a4a' : 'white',
-                  color: role === r ? 'white' : '#555',
-                  border: role === r ? '2px solid #1a7a4a' : '2px solid #ddd',
+                  backgroundColor: role === r ? 'var(--color-primary)' : 'var(--color-surface)',
+                  color: role === r ? 'var(--color-text-on-brand)' : 'var(--color-ink-soft)',
+                  border: role === r ? '2px solid var(--color-primary)' : '2px solid var(--color-border)',
                 }}
+                className="btn-lift"
               >
                 {r.charAt(0).toUpperCase() + r.slice(1)}
               </button>
@@ -250,6 +267,7 @@ function RegisterPage() {
                 value={property}
                 onChange={(e) => setProperty(e.target.value)}
                 style={styles.select}
+                className="input-field"
               >
                 <option value="">-- Select Property --</option>
                 {properties.map((p) => (
@@ -265,6 +283,7 @@ function RegisterPage() {
                 value={houseNumber}
                 onChange={(e) => setHouseNumber(e.target.value)}
                 style={styles.select}
+                className="input-field"
               >
                 <option value="">-- Select House --</option>
                 {[1,2,3,4,5,6,7,8,9].map((num) => (
@@ -275,11 +294,31 @@ function RegisterPage() {
           </div>
         )}
 
+        {/* Agent Fields */}
+        {role === 'agent' && (
+          <div style={styles.fieldGroup}>
+            <p style={styles.fieldLabel}>Property You Are Assigned To</p>
+            <select
+              value={property}
+              onChange={(e) => setProperty(e.target.value)}
+              style={styles.select}
+              className="input-field"
+            >
+              <option value="">-- Select Property --</option>
+              {properties.map((p) => (
+                <option key={p.property_id} value={p.property_id}>
+                  {p.name} · {p.location}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
         {/* Secret Code */}
-        {(role === 'admin' || role === 'landlord') && (
+        {(role === 'admin' || role === 'landlord' || role === 'agent') && (
           <div style={styles.fieldGroup}>
             <p style={styles.fieldLabel}>
-              {role === 'admin' ? 'Admin' : 'Landlord'} Secret Code
+              {role === 'admin' ? 'Admin' : role === 'landlord' ? 'Landlord' : 'Agent'} Secret Code
             </p>
             <input
               id="reg-secret"
@@ -289,6 +328,7 @@ function RegisterPage() {
               onKeyDown={(e) => { if (e.key === 'Enter') handleRegister(); }}
               placeholder="Enter secret code"
               style={styles.input}
+              className="input-field"
             />
           </div>
         )}
@@ -301,13 +341,14 @@ function RegisterPage() {
           onClick={handleRegister}
           disabled={loading}
           style={{ ...styles.registerBtn, opacity: loading ? 0.7 : 1 }}
+          className="btn-lift"
         >
           {loading ? 'Creating Account...' : 'Register'}
         </button>
 
         <div style={styles.loginLink}>
           <p style={styles.loginText}>Already have an account?</p>
-          <a href="/login" style={styles.loginAnchor}>Login here →</a>
+          <a href="/login" style={styles.loginAnchor} className="link-underline">Login here →</a>
         </div>
 
       </div>
@@ -318,27 +359,30 @@ function RegisterPage() {
 const styles = {
   page: {
     minHeight: '100vh',
-    backgroundColor: '#f4f6f8',
+    background: 'radial-gradient(circle at 85% 10%, var(--color-primary-soft-2) 0%, var(--color-bg) 45%)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     padding: '24px 20px',
-    fontFamily: 'Segoe UI, Arial, sans-serif',
+    fontFamily: 'var(--font-sans)',
   },
   card: {
-    background: 'white',
-    borderRadius: '20px',
+    background: 'var(--color-surface)',
+    borderRadius: 'var(--radius-lg)',
     padding: '48px 40px',
     width: '100%',
     maxWidth: '440px',
-    boxShadow: '0 4px 24px rgba(0,0,0,0.08)',
+    boxShadow: 'var(--shadow-lg)',
+    border: '1px solid var(--color-border)',
     textAlign: 'center',
+    animation: 'fadeInUp 0.4s ease',
   },
   logoCircle: {
-    width: '72px',
-    height: '72px',
+    width: '76px',
+    height: '76px',
     borderRadius: '50%',
-    background: '#e8f5ee',
+    background: 'linear-gradient(135deg, var(--color-primary-light), var(--color-primary-soft))',
+    boxShadow: '0 0 0 6px var(--color-primary-light)',
     fontSize: '32px',
     display: 'flex',
     alignItems: 'center',
@@ -350,19 +394,21 @@ const styles = {
     margin: '0 auto 24px',
   },
   title: {
+    fontFamily: 'var(--font-display)',
     fontSize: '26px',
-    fontWeight: 700,
+    fontWeight: 800,
+    letterSpacing: '-0.02em',
     margin: '0 0 8px',
-    color: '#1a1a1a',
+    color: 'var(--color-ink)',
   },
   subtitle: {
     fontSize: '14px',
-    color: '#888',
+    color: 'var(--color-muted)',
     margin: '0 0 32px',
   },
   confirmText: {
     fontSize: '15px',
-    color: '#555',
+    color: 'var(--color-ink-soft)',
     lineHeight: 1.7,
     margin: '0 0 32px',
   },
@@ -372,19 +418,20 @@ const styles = {
   },
   fieldLabel: {
     fontSize: '13px',
-    color: '#555',
+    color: 'var(--color-ink-soft)',
     margin: '0 0 8px',
     fontWeight: 600,
   },
   input: {
     width: '100%',
     padding: '14px 16px',
-    border: '1.5px solid #ddd',
-    borderRadius: '10px',
+    border: '1.5px solid var(--color-border)',
+    borderRadius: 'var(--radius-sm)',
     fontSize: '15px',
     boxSizing: 'border-box',
-    color: '#1a1a1a',
-    outline: 'none',
+    backgroundColor: 'var(--color-surface)',
+    color: 'var(--color-ink)',
+    transition: 'border-color 0.2s, box-shadow 0.2s',
   },
   passwordRow: {
     display: 'flex',
@@ -394,81 +441,80 @@ const styles = {
   passwordInput: {
     flex: 1,
     padding: '14px 16px',
-    border: '1.5px solid #ddd',
-    borderRadius: '10px',
+    border: '1.5px solid var(--color-border)',
+    borderRadius: 'var(--radius-sm)',
     fontSize: '15px',
     boxSizing: 'border-box',
-    outline: 'none',
+    backgroundColor: 'var(--color-surface)',
+    color: 'var(--color-ink)',
+    transition: 'border-color 0.2s, box-shadow 0.2s',
   },
   showBtn: {
     padding: '14px 18px',
-    background: '#f4f6f8',
-    border: '1.5px solid #ddd',
-    borderRadius: '10px',
+    background: 'var(--color-bg)',
+    border: '1.5px solid var(--color-border)',
+    borderRadius: 'var(--radius-sm)',
     fontSize: '13px',
-    cursor: 'pointer',
-    color: '#555',
-    fontWeight: 500,
+    color: 'var(--color-ink-soft)',
+    fontWeight: 600,
   },
   roleRow: {
     display: 'flex',
+    flexWrap: 'wrap',
     gap: '10px',
   },
   roleBtn: {
-    flex: 1,
+    flex: '1 1 40%',
     padding: '14px 8px',
-    borderRadius: '10px',
+    borderRadius: 'var(--radius-sm)',
     fontSize: '14px',
-    fontWeight: 600,
-    cursor: 'pointer',
+    fontWeight: 700,
   },
   select: {
     width: '100%',
     padding: '14px 16px',
-    border: '1.5px solid #ddd',
-    borderRadius: '10px',
+    border: '1.5px solid var(--color-border)',
+    borderRadius: 'var(--radius-sm)',
     fontSize: '15px',
     boxSizing: 'border-box',
-    backgroundColor: 'white',
-    color: '#1a1a1a',
-    outline: 'none',
+    backgroundColor: 'var(--color-surface)',
+    color: 'var(--color-ink)',
   },
   errorMsg: {
-    color: '#c0392b',
+    color: 'var(--color-danger)',
     fontSize: '13px',
     margin: '0 0 16px',
     textAlign: 'center',
     padding: '10px 14px',
-    backgroundColor: '#fdecea',
-    borderRadius: '8px',
+    backgroundColor: 'var(--color-danger-light)',
+    borderRadius: 'var(--radius-sm)',
   },
   registerBtn: {
     width: '100%',
     padding: '16px',
-    backgroundColor: '#1a7a4a',
-    color: 'white',
+    backgroundColor: 'var(--color-primary)',
+    color: 'var(--color-text-on-brand)',
     border: 'none',
-    borderRadius: '12px',
+    borderRadius: 'var(--radius-sm)',
     fontSize: '16px',
-    fontWeight: 600,
-    cursor: 'pointer',
+    fontWeight: 700,
     marginBottom: '24px',
+    boxShadow: '0 6px 16px rgba(22, 121, 74, 0.28)',
   },
   loginLink: {
     textAlign: 'center',
     paddingTop: '20px',
-    borderTop: '1px solid #f0f0f0',
+    borderTop: '1px solid var(--color-border)',
   },
   loginText: {
     fontSize: '14px',
-    color: '#888',
+    color: 'var(--color-muted)',
     margin: '0 0 6px',
   },
   loginAnchor: {
     fontSize: '14px',
-    color: '#1a7a4a',
-    fontWeight: 600,
-    textDecoration: 'none',
+    color: 'var(--color-primary)',
+    fontWeight: 700,
   },
 };
 

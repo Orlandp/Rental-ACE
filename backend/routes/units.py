@@ -1,16 +1,25 @@
-from datetime import datetime
 from flask import Blueprint, session, request, jsonify
 from database import get_db
 from routes.decorators import login_required, role_required
-from routes.payments import calculate_penalty
 
 units_bp = Blueprint('units', __name__)
 
 @units_bp.route('/api/units', methods=['GET'])
-@role_required('admin', 'landlord')
+@role_required('admin', 'landlord', 'agent')
 def get_units():
     conn = get_db()
-    units = conn.execute('SELECT * FROM units').fetchall()
+
+    if session['role'] == 'agent':
+        agent = conn.execute(
+            'SELECT assigned_property_id FROM users WHERE user_id = ?', (session['user_id'],)
+        ).fetchone()
+        property_id = agent['assigned_property_id'] if agent else None
+        units = conn.execute(
+            'SELECT * FROM units WHERE property_id = ?', (property_id,)
+        ).fetchall() if property_id else []
+    else:
+        units = conn.execute('SELECT * FROM units').fetchall()
+
     conn.close()
 
     return jsonify([dict(u) for u in units]), 200
@@ -57,14 +66,18 @@ def update_unit(unit_id):
     penalty_date = data.get('penalty_date', unit['penalty_date'])
     penalty_rate = data.get('penalty_rate', unit['penalty_rate'])
     status = data.get('status', unit['status'])
+    paybill_no = data.get('paybill_no', unit['paybill_no'])
+    account_no = data.get('account_no', unit['account_no'])
 
     conn.execute('''
         UPDATE units
         SET rent_amount = ?, payment_type = ?, phone_no = ?, has_water_bill = ?,
-            water_bill = ?, penalty_date = ?, penalty_rate = ?, status = ?
+            water_bill = ?, penalty_date = ?, penalty_rate = ?, status = ?,
+            paybill_no = ?, account_no = ?
         WHERE unit_id = ?
     ''', (rent_amount, payment_type, phone_no, has_water_bill,
-          water_bill, penalty_date, penalty_rate, status, unit_id))
+          water_bill, penalty_date, penalty_rate, status,
+          paybill_no, account_no, unit_id))
 
     conn.commit()
     conn.close()
@@ -77,7 +90,9 @@ def get_unit_public(unit_id):
     unit = conn.execute('''
         SELECT u.unit_id, u.unit_number, u.rent_amount, u.payment_type,
                u.phone_no, u.has_water_bill, u.water_bill, u.property_id,
-               p.name AS property_name, p.paybill_no, p.account_no
+               p.name AS property_name,
+               COALESCE(u.paybill_no, p.paybill_no) AS paybill_no,
+               COALESCE(u.account_no, p.account_no) AS account_no
         FROM units u
         JOIN properties p ON u.property_id = p.property_id
         WHERE u.unit_id = ?
@@ -87,25 +102,41 @@ def get_unit_public(unit_id):
         conn.close()
         return jsonify({'error': 'Unit not found'}), 404
 
-    now = datetime.now()
-    current_month = now.strftime('%B %Y')
+    invoice = conn.execute('''
+        SELECT * FROM invoices
+        WHERE unit_id = ? AND status IN ('unpaid', 'partial')
+        ORDER BY due_date ASC, invoice_id ASC LIMIT 1
+    ''', (unit_id,)).fetchone()
 
-    already_paid = conn.execute(
-        'SELECT * FROM payments WHERE unit_id = ? AND month = ?',
-        (unit_id, current_month)
-    ).fetchone()
+    if invoice:
+        from datetime import datetime
+        from routes.invoices import refresh_invoice_penalty
+        penalty, total_amount = refresh_invoice_penalty(conn, invoice, datetime.now())
+        conn.commit()
     conn.close()
 
-    penalty = 0 if already_paid else calculate_penalty(unit['rent_amount'], now.strftime('%Y-%m-%d'))
-    total_due = 0 if already_paid else unit['rent_amount'] + penalty
-
     unit_data = dict(unit)
-    unit_data.update({
-        'current_month': current_month,
-        'penalty': penalty,
-        'total_due': total_due,
-        'already_paid_this_month': bool(already_paid),
-    })
+
+    if invoice:
+        balance_due = total_amount - invoice['amount_paid']
+        unit_data.update({
+            'has_invoice': True,
+            'invoice_id': invoice['invoice_id'],
+            'invoice_no': f"INV-{invoice['invoice_id']:05d}",
+            'current_month': invoice['month'],
+            'penalty': penalty,
+            'amount_paid': invoice['amount_paid'],
+            'total_due': balance_due,
+            'invoice_status': invoice['status'],
+            'already_paid_this_month': False,
+        })
+    else:
+        unit_data.update({
+            'has_invoice': False,
+            'total_due': 0,
+            'penalty': 0,
+            'already_paid_this_month': True,
+        })
 
     return jsonify(unit_data), 200
 @units_bp.route('/api/units/<int:unit_id>', methods=['DELETE'])

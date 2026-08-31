@@ -4,14 +4,21 @@ function PayPage() {
 
   const [unitData, setUnitData]         = useState(null);
   const [phone, setPhone]               = useState('');
+  const [amount, setAmount]             = useState('');
   const [loading, setLoading]           = useState(true);
   const [error, setError]               = useState('');
   const [formError, setFormError]       = useState('');
   const [paying, setPaying]             = useState(false);
   const [isDesktop, setIsDesktop]       = useState(window.innerWidth >= 768);
+  const [propertyList, setPropertyList] = useState(null);
+  const [selectedPropertyId, setSelectedPropertyId] = useState('');
+  const [houseUnits, setHouseUnits]     = useState([]);
+  const [housesLoading, setHousesLoading] = useState(false);
+  const [selectedHouseUnit, setSelectedHouseUnit] = useState('');
 
   const params = new URLSearchParams(window.location.search);
   const unitId = parseInt(params.get('unit'));
+  const propertyId = params.get('property');
 
   useEffect(() => {
     function handleResize() {
@@ -22,21 +29,53 @@ function PayPage() {
   }, []);
 
   useEffect(() => {
+    async function fetchHouseUnits(propId) {
+      setHousesLoading(true);
+      try {
+        const res = await fetch(`http://localhost:5001/api/properties/${propId}/units/public`);
+        const data = await res.json();
+        setHouseUnits(res.ok && data.units ? data.units : []);
+      } catch (err) {
+        setHouseUnits([]);
+      } finally {
+        setHousesLoading(false);
+      }
+    }
+
     async function loadData() {
       if (!unitId) {
-        setError('Invalid house. Please scan the QR code again.');
+        // No unit given — show the "select your property, then your house"
+        // screen. This scales automatically as more properties are added.
+        try {
+          const res = await fetch('http://localhost:5001/api/properties');
+          const data = await res.json();
+          if (res.ok && Array.isArray(data) && data.length > 0) {
+            setPropertyList(data);
+            const initialPropertyId = String(propertyId || data[0].property_id);
+            setSelectedPropertyId(initialPropertyId);
+            setLoading(false);
+            await fetchHouseUnits(initialPropertyId);
+            return;
+          }
+        } catch (err) {
+          // fall through to the generic invalid-link error below
+        }
+        setError('Invalid house. Please use the payment link sent to you.');
         setLoading(false);
         return;
       }
       try {
-        const res = await fetch(`http://localhost:5000/api/units/${unitId}/public`);
+        const res = await fetch(`http://localhost:5001/api/units/${unitId}/public`);
         const data = await res.json();
         if (!res.ok) {
-          setError(data.error || 'House not found. Please scan the QR code again.');
+          setError(data.error || 'House not found. Please use the payment link sent to you.');
           setLoading(false);
           return;
         }
         setUnitData(data);
+        if (data.has_invoice) {
+          setAmount(String(data.total_due));
+        }
       } catch (err) {
         setError('Could not reach the server. Is Flask running?');
       } finally {
@@ -44,7 +83,29 @@ function PayPage() {
       }
     }
     loadData();
-  }, [unitId]);
+  }, [unitId, propertyId]);
+
+  async function handlePropertyChange(newPropertyId) {
+    setSelectedPropertyId(newPropertyId);
+    setSelectedHouseUnit('');
+    setHousesLoading(true);
+    try {
+      const res = await fetch(`http://localhost:5001/api/properties/${newPropertyId}/units/public`);
+      const data = await res.json();
+      setHouseUnits(res.ok && data.units ? data.units : []);
+    } catch (err) {
+      setHouseUnits([]);
+    } finally {
+      setHousesLoading(false);
+    }
+  }
+
+  function handleUseFullBalance() {
+    if (unitData && unitData.has_invoice) {
+      setAmount(String(unitData.total_due));
+      setFormError('');
+    }
+  }
 
  async function handlePayment() {
     const cleanPhone = phone.replace(/\s/g, '');
@@ -53,16 +114,22 @@ function PayPage() {
       setFormError('Please enter a valid Kenyan number e.g. 0712 345 678');
       return;
     }
+    const parsedAmount = parseFloat(amount);
+    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+      setFormError('Enter an amount greater than zero.');
+      return;
+    }
     setFormError('');
     setPaying(true);
 
     try {
-      const res = await fetch('http://localhost:5000/api/payments', {
+      const res = await fetch('http://localhost:5001/api/payments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           unit_id: unitId,
           phone_used: cleanPhone,
+          amount: parsedAmount,
         }),
       });
       const data = await res.json();
@@ -76,11 +143,13 @@ function PayPage() {
       window.location.href =
         `/success?receipt=${data.receipt.receipt_no}` +
         `&payment_id=${data.receipt.payment_id}` +
+        `&invoice_no=${encodeURIComponent(data.receipt.invoice_no || '')}` +
         `&unit=${data.receipt.unit_number}` +
         `&tenant=${encodeURIComponent(data.receipt.tenant_name)}` +
         `&amount=${data.receipt.amount_paid}` +
         `&rent=${data.receipt.rent_amount}` +
         `&penalty=${data.receipt.penalty}` +
+        `&balance_remaining=${data.receipt.balance_remaining}` +
         `&mpesa=${data.receipt.mpesa_code}` +
         `&month=${encodeURIComponent(data.receipt.month)}` +
         `&date=${encodeURIComponent(data.receipt.payment_date)}`;
@@ -95,6 +164,70 @@ function PayPage() {
     return (
       <div style={styles.centered}>
         <p style={styles.loadingText}>Loading...</p>
+      </div>
+    );
+  }
+
+  if (propertyList) {
+    return (
+      <div style={isDesktop ? styles.pageDesktop : styles.pageMobile}>
+        <div style={isDesktop ? styles.innerDesktop : {}}>
+          <div style={styles.header}>
+            <p style={styles.headerLabel}>Pay Rent</p>
+            <h1 style={styles.headerName}>Find Your House</h1>
+            <p style={styles.headerLocation}>Select your property and house number to continue</p>
+          </div>
+          <div style={isDesktop ? styles.cardDesktop : styles.cardMobile}>
+            <div style={styles.fieldGroup}>
+              <p style={styles.fieldLabel}>Property</p>
+              <select
+                value={selectedPropertyId}
+                onChange={(e) => handlePropertyChange(e.target.value)}
+                style={styles.select}
+                className="input-field"
+              >
+                {propertyList.map((p) => (
+                  <option key={p.property_id} value={p.property_id}>
+                    {p.name} — {p.location}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div style={styles.fieldGroup}>
+              <p style={styles.fieldLabel}>House Number</p>
+              <select
+                value={selectedHouseUnit}
+                onChange={(e) => setSelectedHouseUnit(e.target.value)}
+                style={styles.select}
+                className="input-field"
+                disabled={housesLoading || houseUnits.length === 0}
+              >
+                <option value="">
+                  {housesLoading ? 'Loading houses...' : 'Choose your house...'}
+                </option>
+                {houseUnits.map((u) => (
+                  <option key={u.unit_id} value={u.unit_id}>House {u.unit_number}</option>
+                ))}
+              </select>
+            </div>
+
+            <button
+              onClick={() => { window.location.href = `/pay?unit=${selectedHouseUnit}`; }}
+              disabled={!selectedHouseUnit}
+              style={{ ...styles.payBtn, opacity: selectedHouseUnit ? 1 : 0.5 }}
+              className="btn-lift"
+            >
+              Continue
+            </button>
+            <div style={styles.loginLink}>
+              <p style={styles.loginText}>Want to view your payment history?</p>
+              <a href="/login" style={styles.loginAnchor} className="link-underline">
+                Login to your account →
+              </a>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -124,22 +257,29 @@ return (
 
           {/* Account Badge */}
           <div style={styles.accountBadge}>
-            ✓ Payment secured · {unitData.property_name}
-            {unitData.payment_type === 'paybill' && (
-              <> · Paybill {unitData.paybill_no} · Acc {unitData.account_no}</>
-            )}
+            ✓ Payment secured · {unitData.property_name} · Paybill {unitData.paybill_no} · Acc {unitData.account_no}
           </div>
 
           {/* Invoice */}
           <div style={styles.invoiceCard}>
-            <p style={styles.invoiceTitle}>Invoice — {unitData.current_month}</p>
+            <p style={styles.invoiceTitle}>
+              {unitData.has_invoice ? `Invoice ${unitData.invoice_no} — ${unitData.current_month}` : 'Invoice'}
+            </p>
 
-            {unitData.already_paid_this_month ? (
-              <div style={{ ...styles.penaltyBadge, backgroundColor: '#e8f5ee', border: '1px solid #b8dfc9', color: '#1a7a4a' }}>
-                ✓ Rent for {unitData.current_month} has already been paid. You're all clear!
+            {!unitData.has_invoice ? (
+              <div style={{ ...styles.penaltyBadge, backgroundColor: 'var(--color-primary-light)', border: '1px solid var(--color-primary-soft)', color: 'var(--color-primary-dark)' }}>
+                ✓ You have no outstanding balance right now. Want to pay ahead for next month? Enter an amount below.
               </div>
             ) : (
               <>
+                {unitData.invoice_status === 'partial' && (
+                  <div style={styles.invoiceRow}>
+                    <p style={styles.invoiceLabel}>Already Paid</p>
+                    <p style={{ ...styles.invoiceValue, color: 'var(--color-primary)' }}>
+                      Ksh {unitData.amount_paid.toLocaleString()}
+                    </p>
+                  </div>
+                )}
                 <div style={styles.invoiceRow}>
                   <p style={styles.invoiceLabel}>Rent Due</p>
                   <p style={styles.invoiceValue}>Ksh {unitData.rent_amount.toLocaleString()}</p>
@@ -147,7 +287,7 @@ return (
                 {unitData.penalty > 0 && (
                   <div style={styles.invoiceRow}>
                     <p style={styles.invoiceLabel}>Late Penalty</p>
-                    <p style={{ ...styles.invoiceValue, color: '#c0392b' }}>
+                    <p style={{ ...styles.invoiceValue, color: 'var(--color-danger)' }}>
                       Ksh {unitData.penalty.toLocaleString()}
                     </p>
                   </div>
@@ -158,11 +298,21 @@ return (
                     <p style={styles.invoiceValue}>Ksh {unitData.water_bill.toLocaleString()}</p>
                   </div>
                 )}
-                <div style={{ ...styles.invoiceRow, borderTop: '2px solid #f0f0f0', paddingTop: '12px', marginTop: '4px' }}>
-                  <p style={{ ...styles.invoiceLabel, fontWeight: 700, color: '#1a1a1a', fontSize: '14px' }}>
+                <div
+                  onClick={handleUseFullBalance}
+                  title="Click to fill in the full balance"
+                  style={{
+                    ...styles.invoiceRow,
+                    borderTop: '2px solid var(--color-border)',
+                    paddingTop: '12px',
+                    marginTop: '4px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <p style={{ ...styles.invoiceLabel, fontWeight: 700, color: 'var(--color-ink)', fontSize: '14px' }}>
                     Balance Due
                   </p>
-                  <p style={{ ...styles.invoiceValue, fontSize: '18px' }}>
+                  <p style={{ ...styles.invoiceValue, fontSize: '18px', color: 'var(--color-primary)' }}>
                     Ksh {unitData.total_due.toLocaleString()}
                   </p>
                 </div>
@@ -177,10 +327,27 @@ return (
           </div>
 
           {/* Desktop — two column layout for inputs */}
-          {!unitData.already_paid_this_month && (
-            <div style={isDesktop ? styles.twoCol : {}}>
+          <div style={isDesktop ? styles.twoCol : {}}>
 
               <div style={isDesktop ? styles.col : {}}>
+                {/* Amount */}
+                <div style={styles.fieldGroup}>
+                  <p style={styles.fieldLabel}>Amount to Pay</p>
+                  <input
+                    id="pay-amount"
+                    type="number"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    placeholder="e.g. 5000"
+                    style={styles.input}
+                    className="input-field"
+                  />
+                  <p style={styles.amountHint}>
+                    Paying less than the full balance? That's fine — pay again anytime before the
+                    5th to top it up and avoid a late penalty.
+                  </p>
+                </div>
+
                 {/* Phone */}
                 <div style={styles.fieldGroup}>
                   <p style={styles.fieldLabel}>Your M-Pesa Number</p>
@@ -193,6 +360,7 @@ return (
                     placeholder="e.g. 0712 345 678"
                     maxLength={12}
                     style={styles.input}
+                    className="input-field"
                   />
                 </div>
 
@@ -206,18 +374,20 @@ return (
                   onClick={handlePayment}
                   disabled={paying}
                   style={{ ...styles.payBtn, opacity: paying ? 0.7 : 1 }}
+                  className="btn-lift"
                 >
-                  {paying ? 'Processing...' : `Pay Ksh ${unitData.total_due.toLocaleString()} via M-Pesa`}
+                  {paying
+                    ? 'Processing...'
+                    : `Pay Ksh ${(parseFloat(amount) || 0).toLocaleString()} via M-Pesa`}
                 </button>
               </div>
 
             </div>
-          )}
 
           {/* Login Link */}
           <div style={styles.loginLink}>
             <p style={styles.loginText}>Want to view your payment history?</p>
-            <a href="/login" style={styles.loginAnchor}>
+            <a href="/login" style={styles.loginAnchor} className="link-underline">
               Login to your account →
             </a>
           </div>
@@ -234,14 +404,14 @@ const styles = {
   pageMobile: {
     maxWidth: '480px',
     margin: '0 auto',
-    backgroundColor: '#f4f6f8',
+    backgroundColor: 'var(--color-bg)',
     minHeight: '100vh',
-    fontFamily: 'Segoe UI, Arial, sans-serif',
+    fontFamily: 'var(--font-sans)',
   },
   pageDesktop: {
-    backgroundColor: '#f4f6f8',
+    backgroundColor: 'var(--color-bg)',
     minHeight: '100vh',
-    fontFamily: 'Segoe UI, Arial, sans-serif',
+    fontFamily: 'var(--font-sans)',
     display: 'flex',
     alignItems: 'flex-start',
     justifyContent: 'center',
@@ -258,9 +428,9 @@ const styles = {
     justifyContent: 'center',
     height: '100vh',
   },
-  loadingText: { color: '#888', fontSize: '15px' },
+  loadingText: { color: 'var(--color-muted)', fontSize: '15px' },
   errorText: {
-    color: '#c0392b',
+    color: 'var(--color-danger)',
     fontSize: '15px',
     padding: '20px',
     textAlign: 'center',
@@ -268,11 +438,10 @@ const styles = {
 
   // ---- HEADER ----
   header: {
-    backgroundColor: '#1a7a4a',
-    color: 'white',
+    background: 'linear-gradient(135deg, var(--color-primary), var(--color-primary-dark))',
+    color: 'var(--color-text-on-brand)',
     padding: '40px 32px 48px',
     textAlign: 'center',
-    borderRadius: '0 0 0 0',
   },
   headerLabel: {
     fontSize: '11px',
@@ -282,29 +451,33 @@ const styles = {
     textTransform: 'uppercase',
   },
   headerName: {
+    fontFamily: 'var(--font-display)',
     fontSize: '32px',
-    fontWeight: 700,
+    fontWeight: 800,
+    letterSpacing: '-0.02em',
     margin: '0 0 8px',
   },
   headerLocation: {
     fontSize: '14px',
-    opacity: 0.75,
+    opacity: 0.8,
     margin: 0,
   },
 
   // ---- CARDS ----
   cardMobile: {
-    background: 'white',
-    borderRadius: '20px',
+    background: 'var(--color-surface)',
+    borderRadius: 'var(--radius-lg)',
     margin: '-24px 20px 32px',
-    boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
+    boxShadow: 'var(--shadow-lg)',
+    border: '1px solid var(--color-border)',
     padding: '28px 24px',
   },
   cardDesktop: {
-    background: 'white',
-    borderRadius: '20px',
+    background: 'var(--color-surface)',
+    borderRadius: 'var(--radius-lg)',
     margin: '-24px 32px 32px',
-    boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+    boxShadow: 'var(--shadow-lg)',
+    border: '1px solid var(--color-border)',
     padding: '40px 48px',
   },
 
@@ -325,53 +498,59 @@ const styles = {
   },
   fieldLabel: {
     fontSize: '13px',
-    color: '#555',
+    color: 'var(--color-ink-soft)',
     margin: '0 0 8px',
     fontWeight: 600,
     textTransform: 'uppercase',
     letterSpacing: '0.5px',
   },
+  amountHint: {
+    fontSize: '12px',
+    color: 'var(--color-muted)',
+    margin: '8px 0 0',
+    lineHeight: 1.5,
+  },
   select: {
     width: '100%',
     padding: '14px 16px',
-    border: '1.5px solid #ddd',
-    borderRadius: '10px',
+    border: '1.5px solid var(--color-border)',
+    borderRadius: 'var(--radius-sm)',
     fontSize: '15px',
     boxSizing: 'border-box',
-    backgroundColor: 'white',
-    color: '#1a1a1a',
-    outline: 'none',
+    backgroundColor: 'var(--color-surface)',
+    color: 'var(--color-ink)',
   },
   input: {
     width: '100%',
     padding: '14px 16px',
-    border: '1.5px solid #ddd',
-    borderRadius: '10px',
+    border: '1.5px solid var(--color-border)',
+    borderRadius: 'var(--radius-sm)',
     fontSize: '15px',
     boxSizing: 'border-box',
-    outline: 'none',
-    color: '#1a1a1a',
+    backgroundColor: 'var(--color-surface)',
+    color: 'var(--color-ink)',
+    transition: 'border-color 0.2s, box-shadow 0.2s',
   },
 
   // ---- BADGES ----
   accountBadge: {
-    background: '#e8f5ee',
-    border: '1px solid #b8dfc9',
-    borderRadius: '10px',
+    background: 'var(--color-primary-light)',
+    border: '1px solid var(--color-primary-soft)',
+    borderRadius: 'var(--radius-sm)',
     padding: '12px 16px',
     fontSize: '13px',
-    color: '#1a7a4a',
+    color: 'var(--color-primary-dark)',
     textAlign: 'center',
     marginBottom: '12px',
     fontWeight: 500,
   },
   penaltyBadge: {
-    background: '#fff8e1',
-    border: '1px solid #ffe082',
-    borderRadius: '10px',
+    background: 'var(--color-warning-light)',
+    border: '1px solid var(--color-warning-strong)',
+    borderRadius: 'var(--radius-sm)',
     padding: '12px 16px',
     fontSize: '13px',
-    color: '#f57c00',
+    color: 'var(--color-warning)',
     textAlign: 'center',
     marginBottom: '24px',
     fontWeight: 500,
@@ -379,15 +558,15 @@ const styles = {
 
   // ---- INVOICE ----
   invoiceCard: {
-    backgroundColor: '#f8fafc',
-    borderRadius: '14px',
+    backgroundColor: 'var(--color-bg)',
+    borderRadius: 'var(--radius-md)',
     padding: '20px',
     marginBottom: '24px',
   },
   invoiceTitle: {
     fontSize: '12px',
     fontWeight: 700,
-    color: '#555',
+    color: 'var(--color-ink-soft)',
     margin: '0 0 12px',
     textTransform: 'uppercase',
     letterSpacing: '0.5px',
@@ -400,37 +579,37 @@ const styles = {
   },
   invoiceLabel: {
     fontSize: '13px',
-    color: '#555',
+    color: 'var(--color-ink-soft)',
     margin: 0,
   },
   invoiceValue: {
     fontSize: '14px',
     fontWeight: 600,
-    color: '#1a1a1a',
+    color: 'var(--color-ink)',
     margin: 0,
   },
 
   // ---- ERROR + BUTTON ----
   formError: {
-    color: '#c0392b',
+    color: 'var(--color-danger)',
     fontSize: '13px',
     margin: '0 0 16px',
     textAlign: 'center',
     padding: '10px',
-    backgroundColor: '#fdecea',
-    borderRadius: '8px',
+    backgroundColor: 'var(--color-danger-light)',
+    borderRadius: 'var(--radius-sm)',
   },
   payBtn: {
     width: '100%',
     padding: '18px',
-    backgroundColor: '#1a7a4a',
-    color: 'white',
+    backgroundColor: 'var(--color-primary)',
+    color: 'var(--color-text-on-brand)',
     border: 'none',
-    borderRadius: '12px',
+    borderRadius: 'var(--radius-sm)',
     fontSize: '17px',
     fontWeight: 700,
-    cursor: 'pointer',
     marginBottom: '8px',
+    boxShadow: '0 8px 20px rgba(22, 121, 74, 0.3)',
   },
 
   // ---- LOGIN LINK ----
@@ -438,18 +617,17 @@ const styles = {
     textAlign: 'center',
     paddingTop: '24px',
     marginTop: '8px',
-    borderTop: '1px solid #f0f0f0',
+    borderTop: '1px solid var(--color-border)',
   },
   loginText: {
     fontSize: '14px',
-    color: '#888',
+    color: 'var(--color-muted)',
     margin: '0 0 8px',
   },
   loginAnchor: {
     fontSize: '14px',
-    color: '#1a7a4a',
-    fontWeight: 600,
-    textDecoration: 'none',
+    color: 'var(--color-primary)',
+    fontWeight: 700,
   },
 };
 

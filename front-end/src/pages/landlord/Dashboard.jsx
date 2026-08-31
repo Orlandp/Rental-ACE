@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import useIdleLogout from '../../hooks/useIdleLogout';
+import useBackButtonLogout from '../../hooks/useBackButtonLogout';
 
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -9,12 +10,15 @@ const MONTH_NAMES = [
 function LandlordDashboard() {
 
   useIdleLogout(5);
+  useBackButtonLogout();
 
   const [landlord, setLandlord]         = useState(null);
+  const [properties, setProperties]     = useState([]);
   const [units, setUnits]               = useState([]);
   const [tenants, setTenants]           = useState([]);
   const [allPayments, setAllPayments]   = useState([]);
   const [allExpenses, setAllExpenses]   = useState([]);
+  const [waterHistory, setWaterHistory] = useState([]);
   const [loading, setLoading]           = useState(true);
   const [error, setError]               = useState('');
   const [activePage, setActivePage]     = useState('dashboard');
@@ -33,25 +37,45 @@ function LandlordDashboard() {
   useEffect(() => {
     async function loadData() {
       try {
-        const meRes = await fetch('http://localhost:5000/api/auth/me', { credentials: 'include' });
+        const meRes = await fetch('http://localhost:5001/api/auth/me', { credentials: 'include' });
         const me = await meRes.json();
         if (meRes.ok) setLandlord(me);
 
-        const unitsRes = await fetch('http://localhost:5000/api/units', { credentials: 'include' });
+        const propertiesRes = await fetch('http://localhost:5001/api/properties', { credentials: 'include' });
+        const propertiesData = await propertiesRes.json();
+        if (propertiesRes.ok) setProperties(propertiesData);
+
+        const unitsRes = await fetch('http://localhost:5001/api/units', { credentials: 'include' });
         const unitsData = await unitsRes.json();
         if (unitsRes.ok) setUnits(unitsData);
 
-        const tenantsRes = await fetch('http://localhost:5000/api/tenants', { credentials: 'include' });
+        const tenantsRes = await fetch('http://localhost:5001/api/tenants', { credentials: 'include' });
         const tenantsData = await tenantsRes.json();
         if (tenantsRes.ok) setTenants(tenantsData);
 
-        const paymentsRes = await fetch('http://localhost:5000/api/payments', { credentials: 'include' });
+        const paymentsRes = await fetch('http://localhost:5001/api/payments', { credentials: 'include' });
         const paymentsData = await paymentsRes.json();
         if (paymentsRes.ok) setAllPayments(paymentsData);
 
-        const expensesRes = await fetch('http://localhost:5000/api/expenses', { credentials: 'include' });
+        const expensesRes = await fetch('http://localhost:5001/api/expenses', { credentials: 'include' });
         const expensesData = await expensesRes.json();
         if (expensesRes.ok) setAllExpenses(expensesData);
+
+        const waterUnits = unitsRes.ok ? unitsData.filter((u) => u.has_water_bill) : [];
+        if (waterUnits.length > 0) {
+          const responses = await Promise.all(
+            waterUnits.map((u) => fetch(`http://localhost:5001/api/water-bills/${u.unit_id}`, { credentials: 'include' }))
+          );
+          if (!responses.some((r) => !r.ok)) {
+            const dataByUnit = await Promise.all(responses.map((r) => r.json()));
+            const flat = [];
+            waterUnits.forEach((u, i) => {
+              dataByUnit[i].forEach((b) => flat.push({ ...b, unit_number: u.unit_number }));
+            });
+            flat.sort((a, b) => b.bill_id - a.bill_id);
+            setWaterHistory(flat);
+          }
+        }
       } catch (err) {
         setError('Could not load dashboard.');
       } finally {
@@ -82,14 +106,21 @@ function LandlordDashboard() {
   const availableUnits = units.filter(u => (u.status || '').toUpperCase() === 'AVAILABLE').length;
 
   function getCategoryStyle(category) {
-    if (category === 'Repairs')   return { bg: '#fdecea', color: '#c0392b' };
-    if (category === 'Cleaning')  return { bg: '#e8f4fd', color: '#2980b9' };
-    if (category === 'Utilities') return { bg: '#fff8e1', color: '#f57c00' };
-    if (category === 'Security')  return { bg: '#f3e5f5', color: '#8e24aa' };
-    return                               { bg: '#f4f6f8', color: '#555'    };
+    if (category === 'Repairs')   return { bg: 'var(--color-danger-light)', color: 'var(--color-danger-strong)' };
+    if (category === 'Cleaning')  return { bg: 'var(--color-info-light)', color: 'var(--color-info-strong)' };
+    if (category === 'Utilities') return { bg: 'var(--color-warning-soft)', color: 'var(--color-warning)' };
+    if (category === 'Security')  return { bg: 'var(--color-accent-purple-light)', color: 'var(--color-accent-purple)' };
+    return                               { bg: 'var(--color-bg-alt)', color: 'var(--color-ink-soft)'    };
   }
 
-  function handleLogout() { window.location.href = '/login'; }
+  function handleLogout() {
+    fetch('http://localhost:5001/api/auth/logout', {
+      method: 'POST',
+      credentials: 'include',
+    }).finally(() => {
+      window.location.href = '/login';
+    });
+  }
 
   function parseMonthYear(monthYearStr) {
     const parts = monthYearStr.split(' ');
@@ -99,7 +130,7 @@ function LandlordDashboard() {
   async function handleDownloadPDF() {
     const { month, year } = parseMonthYear(selectedMonth);
     try {
-      const res = await fetch(`http://localhost:5000/api/reports/pdf?month=${month}&year=${year}`, {
+      const res = await fetch(`http://localhost:5001/api/reports/pdf?month=${month}&year=${year}`, {
         credentials: 'include',
       });
       if (!res.ok) {
@@ -121,7 +152,7 @@ function LandlordDashboard() {
   async function handleDownloadExcel() {
     const { month, year } = parseMonthYear(selectedMonth);
     try {
-      const res = await fetch(`http://localhost:5000/api/reports/excel?month=${month}&year=${year}`, {
+      const res = await fetch(`http://localhost:5001/api/reports/excel?month=${month}&year=${year}`, {
         credentials: 'include',
       });
       if (!res.ok) {
@@ -141,7 +172,7 @@ function LandlordDashboard() {
   }
 
   if (loading) return <div style={styles.centered}><p>Loading...</p></div>;
-  if (error)   return <div style={styles.centered}><p style={{ color: '#c0392b' }}>⚠ {error}</p></div>;
+  if (error)   return <div style={styles.centered}><p style={{ color: 'var(--color-danger-strong)' }}>⚠ {error}</p></div>;
 
   return (
     <div style={styles.page}>
@@ -152,14 +183,16 @@ function LandlordDashboard() {
           <div>
             <p style={styles.headerLabel}>Landlord</p>
             <h2 style={styles.headerName}>{landlord?.full_name}</h2>
-            <p style={styles.headerSub}>Ace Apartments · Eldoret</p>
+            <p style={styles.headerSub}>
+              {properties.length > 0 ? properties.map((p) => `${p.name} · ${p.location}`).join(' · ') : 'Loading property...'}
+            </p>
           </div>
           <button onClick={handleLogout} style={styles.logoutBtn}>Logout</button>
         </div>
 
         {/* Navigation */}
         <div style={styles.nav}>
-          {['dashboard', 'reports'].map((page) => (
+          {['dashboard', 'properties', 'payments', 'water', 'reports'].map((page) => (
             <button
               key={page}
               onClick={() => setActivePage(page)}
@@ -222,7 +255,7 @@ function LandlordDashboard() {
                     <p style={{
                       fontSize: '13px',
                       fontWeight: 700,
-                      color: payment?.status === 'paid' ? '#1a7a4a' : '#c0392b',
+                      color: payment?.status === 'paid' ? 'var(--color-brand)' : 'var(--color-danger-strong)',
                       margin: 0,
                     }}>
                       {payment ? payment.status.toUpperCase() : '——'}
@@ -235,6 +268,94 @@ function LandlordDashboard() {
           </div>
         )}
 
+        {/* PROPERTIES PAGE */}
+        {activePage === 'properties' && (
+          <div style={styles.content}>
+            <div style={styles.card}>
+              <p style={styles.cardTitle}>Your Properties ({properties.length})</p>
+              {properties.length === 0 ? (
+                <p style={styles.placeholderText}>No properties on record.</p>
+              ) : (
+                properties.map((p) => (
+                  <div key={p.property_id} style={styles.unitRow}>
+                    <div style={styles.unitLeft}>
+                      <div style={styles.unitBadge}>🏠</div>
+                      <div>
+                        <p style={styles.unitTenant}>{p.name}</p>
+                        <p style={styles.unitRent}>{p.location}</p>
+                        <p style={styles.unitOnboarding}>
+                          Paybill {p.paybill_no || '—'} · Acc {p.account_no}
+                        </p>
+                      </div>
+                    </div>
+                    <p style={{ fontSize: '13px', fontWeight: 700, color: GREEN, margin: 0 }}>
+                      {units.filter((u) => u.property_id === p.property_id).length} unit(s)
+                    </p>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* PAYMENTS PAGE */}
+        {activePage === 'payments' && (
+          <div style={styles.content}>
+            <div style={styles.card}>
+              <p style={styles.cardTitle}>All Payments ({allPayments.length})</p>
+              {allPayments.length === 0 ? (
+                <p style={styles.placeholderText}>No payments recorded yet.</p>
+              ) : (
+                allPayments.map((payment) => (
+                  <div key={payment.payment_id} style={styles.unitRow}>
+                    <div style={styles.unitLeft}>
+                      <div style={styles.unitBadge}>H{payment.unit_number}</div>
+                      <div>
+                        <p style={styles.unitTenant}>{payment.tenant_name}</p>
+                        <p style={styles.unitRent}>Ksh {payment.amount.toLocaleString()} · {payment.month} · {payment.payment_date}</p>
+                      </div>
+                    </div>
+                    <span style={{
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      padding: '4px 12px',
+                      borderRadius: '20px',
+                      backgroundColor: payment.status === 'paid' ? 'var(--color-primary-light)' : 'var(--color-danger-light)',
+                      color: payment.status === 'paid' ? GREEN : 'var(--color-danger-strong)',
+                    }}>
+                      {payment.status.toUpperCase()}
+                    </span>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* WATER BILLS PAGE */}
+        {activePage === 'water' && (
+          <div style={styles.content}>
+            <div style={styles.card}>
+              <p style={styles.cardTitle}>Water Bill History ({waterHistory.length})</p>
+              {waterHistory.length === 0 ? (
+                <p style={styles.placeholderText}>No water bills recorded yet.</p>
+              ) : (
+                waterHistory.map((bill) => (
+                  <div key={bill.bill_id} style={styles.unitRow}>
+                    <div style={styles.unitLeft}>
+                      <div style={styles.unitBadge}>H{bill.unit_number}</div>
+                      <div>
+                        <p style={styles.unitTenant}>{bill.month} {bill.year}</p>
+                        <p style={styles.unitRent}>Ksh {bill.amount.toLocaleString()}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
         {/* REPORTS PAGE */}
         {activePage === 'reports' && (
           <div style={styles.content}>
@@ -244,7 +365,7 @@ function LandlordDashboard() {
               <div style={styles.monthRow}>
                 <div>
                   <p style={styles.cardTitle}>Financial Report</p>
-                  <p style={{ fontSize: '13px', color: '#888', margin: 0 }}>
+                  <p style={{ fontSize: '13px', color: 'var(--color-muted)', margin: 0 }}>
                     Select a month to view its report
                   </p>
                 </div>
@@ -263,19 +384,19 @@ function LandlordDashboard() {
             {/* Income Summary Cards */}
             <div style={styles.summaryRow}>
               <div style={styles.summaryCard}>
-                <p style={{ ...styles.summaryValue, color: '#1a1a1a' }}>
+                <p style={{ ...styles.summaryValue, color: 'var(--color-ink)' }}>
                   Ksh {expectedIncome.toLocaleString()}
                 </p>
                 <p style={styles.summaryLabel}>Expected</p>
               </div>
               <div style={styles.summaryCard}>
-                <p style={{ ...styles.summaryValue, color: '#1a7a4a' }}>
+                <p style={{ ...styles.summaryValue, color: 'var(--color-brand)' }}>
                   Ksh {collectedIncome.toLocaleString()}
                 </p>
                 <p style={styles.summaryLabel}>Collected</p>
               </div>
               <div style={styles.summaryCard}>
-                <p style={{ ...styles.summaryValue, color: '#c0392b' }}>
+                <p style={{ ...styles.summaryValue, color: 'var(--color-danger-strong)' }}>
                   Ksh {outstanding.toLocaleString()}
                 </p>
                 <p style={styles.summaryLabel}>Outstanding</p>
@@ -292,21 +413,21 @@ function LandlordDashboard() {
 
                   <div style={styles.reportRow}>
                     <p style={styles.reportLabel}>Collected Income</p>
-                    <p style={{ ...styles.reportValue, color: '#1a7a4a' }}>
+                    <p style={{ ...styles.reportValue, color: 'var(--color-brand)' }}>
                       Ksh {collectedIncome.toLocaleString()}
                     </p>
                   </div>
                   <div style={styles.reportRow}>
                     <p style={styles.reportLabel}>Total Expenses</p>
-                    <p style={{ ...styles.reportValue, color: '#c0392b' }}>
+                    <p style={{ ...styles.reportValue, color: 'var(--color-danger-strong)' }}>
                       Ksh {totalExpenses.toLocaleString()}
                     </p>
                   </div>
-                  <div style={{ ...styles.reportRow, borderTop: '2px solid #f0f0f0', paddingTop: '16px', marginTop: '8px' }}>
-                    <p style={{ ...styles.reportLabel, fontWeight: 700, color: '#1a1a1a', fontSize: '15px' }}>
+                  <div style={{ ...styles.reportRow, borderTop: '2px solid var(--color-border-soft)', paddingTop: '16px', marginTop: '8px' }}>
+                    <p style={{ ...styles.reportLabel, fontWeight: 700, color: 'var(--color-ink)', fontSize: '15px' }}>
                       Net Income
                     </p>
-                    <p style={{ ...styles.reportValue, color: '#1a7a4a', fontSize: '20px', fontWeight: 700 }}>
+                    <p style={{ ...styles.reportValue, color: 'var(--color-brand)', fontSize: '20px', fontWeight: 700 }}>
                       Ksh {netIncome.toLocaleString()}
                     </p>
                   </div>
@@ -363,8 +484,8 @@ function LandlordDashboard() {
                           fontWeight: 700,
                           padding: '4px 12px',
                           borderRadius: '20px',
-                          backgroundColor: payment?.status === 'paid' ? '#e8f5ee' : '#fdecea',
-                          color: payment?.status === 'paid' ? '#1a7a4a' : '#c0392b',
+                          backgroundColor: payment?.status === 'paid' ? 'var(--color-primary-light)' : 'var(--color-danger-light)',
+                          color: payment?.status === 'paid' ? 'var(--color-brand)' : 'var(--color-danger-strong)',
                         }}>
                           {payment ? payment.status.toUpperCase() : '——'}
                         </span>
@@ -394,15 +515,15 @@ function LandlordDashboard() {
   );
 }
 
-const GREEN = '#1a7a4a';
+const GREEN = 'var(--color-brand)';
 
 const styles = {
   page: {
     display: 'flex',
     flexDirection: 'column',
     minHeight: '100vh',
-    backgroundColor: '#f4f6f8',
-    fontFamily: 'Segoe UI, Arial, sans-serif',
+    backgroundColor: 'var(--color-bg-alt)',
+    fontFamily: 'var(--font-sans)',
   },
   centered: {
     display: 'flex',
@@ -412,7 +533,7 @@ const styles = {
   },
   header: {
     backgroundColor: GREEN,
-    color: 'white',
+    color: 'var(--color-text-on-brand)',
     padding: '24px 32px 0',
   },
   headerTop: {
@@ -435,7 +556,7 @@ const styles = {
     background: 'rgba(255,255,255,0.2)',
     border: '1px solid rgba(255,255,255,0.4)',
     borderRadius: '10px',
-    color: 'white',
+    color: 'var(--color-text-on-brand)',
     fontSize: '14px',
     cursor: 'pointer',
   },
@@ -447,7 +568,7 @@ const styles = {
     padding: '12px 24px',
     border: 'none',
     borderRadius: '8px 8px 0 0',
-    color: 'white',
+    color: 'var(--color-text-on-brand)',
     fontSize: '14px',
     cursor: 'pointer',
   },
@@ -476,11 +597,11 @@ const styles = {
   },
   summaryCard: {
     flex: '1 1 140px',
-    background: 'white',
+    background: 'var(--color-surface)',
     borderRadius: '14px',
     padding: '20px 16px',
     textAlign: 'center',
-    boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+    boxShadow: 'var(--shadow-sm)',
   },
   summaryValue: {
     fontSize: '24px',
@@ -490,22 +611,22 @@ const styles = {
   },
   summaryLabel: {
     fontSize: '12px',
-    color: '#888',
+    color: 'var(--color-muted)',
     margin: 0,
     textTransform: 'uppercase',
     letterSpacing: '0.5px',
   },
   card: {
-    background: 'white',
+    background: 'var(--color-surface)',
     borderRadius: '16px',
     marginBottom: '20px',
     padding: '24px',
-    boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+    boxShadow: 'var(--shadow-sm)',
   },
   cardTitle: {
     fontSize: '13px',
     fontWeight: 700,
-    color: '#1a1a1a',
+    color: 'var(--color-ink)',
     margin: '0 0 20px',
     textTransform: 'uppercase',
     letterSpacing: '1px',
@@ -519,10 +640,11 @@ const styles = {
   },
   monthSelect: {
     padding: '10px 16px',
-    border: '1.5px solid #ddd',
+    border: '1.5px solid var(--color-border-soft)',
     borderRadius: '10px',
     fontSize: '14px',
-    backgroundColor: 'white',
+    backgroundColor: 'var(--color-surface)',
+    color: 'var(--color-ink)',
     cursor: 'pointer',
     outline: 'none',
   },
@@ -531,23 +653,23 @@ const styles = {
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: '12px 0',
-    borderBottom: '1px solid #f0f0f0',
+    borderBottom: '1px solid var(--color-border-soft)',
   },
-  reportLabel: { fontSize: '14px', color: '#555', margin: 0 },
+  reportLabel: { fontSize: '14px', color: 'var(--color-ink-soft)', margin: 0 },
   reportValue: { fontSize: '15px', fontWeight: 600, margin: 0 },
   unitRow: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: '12px 0',
-    borderBottom: '1px solid #f0f0f0',
+    borderBottom: '1px solid var(--color-border-soft)',
   },
   unitLeft: { display: 'flex', alignItems: 'center', gap: '12px' },
   unitBadge: {
     width: '40px',
     height: '40px',
     borderRadius: '10px',
-    background: '#e8f5ee',
+    background: 'var(--color-primary-light)',
     color: GREEN,
     display: 'flex',
     alignItems: 'center',
@@ -556,15 +678,15 @@ const styles = {
     fontWeight: 700,
     minWidth: '40px',
   },
-  unitTenant: { fontSize: '14px', fontWeight: 600, margin: '0 0 2px', color: '#1a1a1a' },
-  unitRent: { fontSize: '12px', color: '#888', margin: 0 },
-  unitOnboarding: { fontSize: '11px', color: '#aaa', margin: '2px 0 0' },
+  unitTenant: { fontSize: '14px', fontWeight: 600, margin: '0 0 2px', color: 'var(--color-ink)' },
+  unitRent: { fontSize: '12px', color: 'var(--color-muted)', margin: 0 },
+  unitOnboarding: { fontSize: '11px', color: 'var(--color-muted)', margin: '2px 0 0' },
   expenseRow: {
     display: 'flex',
     alignItems: 'center',
     gap: '12px',
     padding: '12px 0',
-    borderBottom: '1px solid #f0f0f0',
+    borderBottom: '1px solid var(--color-border-soft)',
   },
   categoryBadge: {
     padding: '4px 12px',
@@ -573,8 +695,8 @@ const styles = {
     fontWeight: 700,
     whiteSpace: 'nowrap',
   },
-  expenseDesc: { fontSize: '13px', color: '#555', margin: 0 },
-  expenseAmount: { fontSize: '14px', fontWeight: 700, color: '#c0392b', margin: 0, whiteSpace: 'nowrap' },
+  expenseDesc: { fontSize: '13px', color: 'var(--color-ink-soft)', margin: 0 },
+  expenseAmount: { fontSize: '14px', fontWeight: 700, color: 'var(--color-danger-strong)', margin: 0, whiteSpace: 'nowrap' },
   downloadRow: {
     display: 'flex',
     gap: '16px',
@@ -584,8 +706,8 @@ const styles = {
   pdfBtn: {
     flex: 1,
     padding: '16px',
-    backgroundColor: '#c0392b',
-    color: 'white',
+    backgroundColor: 'var(--color-danger-strong)',
+    color: 'var(--color-text-on-brand)',
     border: 'none',
     borderRadius: '12px',
     fontSize: '15px',
@@ -597,7 +719,7 @@ const styles = {
     flex: 1,
     padding: '16px',
     backgroundColor: GREEN,
-    color: 'white',
+    color: 'var(--color-text-on-brand)',
     border: 'none',
     borderRadius: '12px',
     fontSize: '15px',
@@ -606,7 +728,7 @@ const styles = {
     minWidth: '160px',
   },
   placeholderText: {
-    color: '#888',
+    color: 'var(--color-muted)',
     fontSize: '14px',
     textAlign: 'center',
     padding: '32px 0',

@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s -b tenant_cookies.txt -X POST http://127.0.0.1:5000/api/payments -H \"Content-Type: application/json\" -d \"{\\\\\"unit_id\\\\\": 3, \\\\\"amount\\\\\": 18000, \\\\\"mpesa_code\\\\\": \\\\\"QWE123XYZ\\\\\", \\\\\"phone_used\\\\\": \\\\\"0700000000\\\\\", \\\\\"payment_date\\\\\": \\\\\"2026-07-12\\\\\", \\\\\"month\\\\\": \\\\\"July 2026\\\\\"}\")",
+      "Bash(cd \"/home/james-orlando/Desktop/RENTAL ACE /Rental-ACE/front-end/src\" && sed -i 's/127\\\\.0\\\\.0\\\\.1/localhost/g' pages/RegisterPage.jsx pages/admin/Dashboard.jsx pages/LoginPage.jsx)",
+      "Bash(echo \"exit code: $?\")",
+      "Bash(pkill -f \"python.*app\\\\.py\")",
+      "Bash(rm -f /tmp/admin_cookies.txt)",
+      "Bash(curl -s -c /tmp/admin_cookies.txt -X POST http://localhost:5000/api/auth/login -H \"Content-Type: application/json\" -d '{\"username\":\"admin1\",\"password\":\"admin123\"}')",
+      "Bash(curl -s -b /tmp/admin_cookies.txt http://localhost:5000/api/tenants/pending)",
+      "Bash(curl -s -b /tmp/admin_cookies.txt http://localhost:5000/api/units)",
+      "Bash(curl -s -b /tmp/admin_cookies.txt http://localhost:5000/api/tenants)",
+      "Bash(python3 -c \"import flask\")"
+    ],
+    "additionalDirectories": [
+      "/home/james-orlando/Desktop/RENTAL ACE /Rental-ACE/front-end/src/pages"
+    ]
+  }
+}

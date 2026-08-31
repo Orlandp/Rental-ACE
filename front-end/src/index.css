@@ -1,9 +1,199 @@
-*{
+:root {
+  /* Brand */
+  --color-primary: #16794a;
+  --color-primary-dark: #0f5c38;
+  --color-primary-light: #e8f5ee;
+  --color-primary-soft: #d6f0e2;
+  --color-primary-soft-2: #eaf7f0;
+  --color-brand: #1a7a4a;
+  --color-brand-dark: #145f38;
+  --color-success-soft: #b8dfc9;
+
+  /* Semantic */
+  --color-danger: #d92d20;
+  --color-danger-strong: #c0392b;
+  --color-danger-light: #fdecea;
+  --color-danger-soft: #f5c6cb;
+  --color-warning: #f57c00;
+  --color-warning-light: #fff6e6;
+  --color-warning-soft: #fff8e1;
+  --color-warning-strong: #ffdca8;
+  --color-info: #2563eb;
+  --color-info-strong: #2980b9;
+  --color-info-light: #e8f4fd;
+  --color-accent-purple: #8e24aa;
+  --color-accent-purple-light: #f3e5f5;
+
+  /* Neutrals */
+  --color-ink: #14181a;
+  --color-ink-soft: #4b5563;
+  --color-muted: #8a94a3;
+  --color-border: #e6e9ee;
+  --color-border-soft: #f0f0f0;
+  --color-surface: #ffffff;
+  --color-surface-alt: #f8fafc;
+  --color-bg: #f6f7f9;
+  --color-bg-alt: #f4f6f8;
+  --color-scrollbar-thumb: #d5dae0;
+
+  /* Text that always sits on a colored (brand/status) surface, not a
+     neutral one — stays constant across themes. */
+  --color-text-on-brand: #ffffff;
+
+  /* Type */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Manrope', 'Inter', -apple-system, sans-serif;
+
+  /* Elevation */
+  --shadow-sm: 0 1px 2px rgba(16, 24, 32, 0.06);
+  --shadow-md: 0 4px 16px rgba(16, 24, 32, 0.08);
+  --shadow-lg: 0 12px 32px rgba(16, 24, 32, 0.12);
+
+  /* Shape */
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 22px;
+
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  --color-primary: #22a566;
+  --color-primary-dark: #1a7a4a;
+  --color-primary-light: #113a26;
+  --color-primary-soft: #16351f;
+  --color-primary-soft-2: #16351f;
+  --color-brand: #22a566;
+  --color-brand-dark: #1a7a4a;
+  --color-success-soft: #1c3826;
+
+  --color-danger: #f0564a;
+  --color-danger-strong: #e0453a;
+  --color-danger-light: #3a1f1d;
+  --color-danger-soft: #3a2224;
+  --color-warning: #ffa733;
+  --color-warning-light: #3a2c14;
+  --color-warning-soft: #3a3018;
+  --color-warning-strong: #4a3a1e;
+  --color-info: #5b8def;
+  --color-info-strong: #5aa9e6;
+  --color-info-light: #17293a;
+  --color-accent-purple: #c37fe0;
+  --color-accent-purple-light: #2e1f36;
+
+  --color-ink: #eef1f4;
+  --color-ink-soft: #b7c0cc;
+  --color-muted: #8b95a3;
+  --color-border: #2a2f36;
+  --color-border-soft: #232830;
+  --color-surface: #1b1f24;
+  --color-surface-alt: #20252c;
+  --color-bg: #14171a;
+  --color-bg-alt: #14171a;
+  --color-scrollbar-thumb: #3a4048;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.5);
+
+  color-scheme: dark;
+}
+
+* {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
 body {
-  background-color: #f8f4ff ;
-  font-family: sans-serif;
+  background-color: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  line-height: 1.5;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+button, input, select, textarea {
+  font-family: inherit;
+}
+
+button {
+  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease, background-color 0.15s ease;
+}
+
+button:active {
+  transform: translateY(1px);
+}
+
+::selection {
+  background: var(--color-primary-soft);
+  color: var(--color-primary-dark);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-scrollbar-thumb);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Shared interactive utilities — used alongside inline style objects,
+   since inline styles can't express :focus/:hover states. */
+
+.input-field {
+  outline: none;
+}
+.input-field:focus {
+  border-color: var(--color-primary) !important;
+  box-shadow: 0 0 0 4px var(--color-primary-light);
+}
+
+.btn-lift {
+  cursor: pointer;
+}
+.btn-lift:hover:not(:disabled) {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+.btn-lift:disabled {
+  cursor: not-allowed;
+}
+
+.link-underline {
+  text-decoration: none;
+}
+.link-underline:hover {
+  text-decoration: underline;
+}
+
+.card-lift {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.card-lift:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg);
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

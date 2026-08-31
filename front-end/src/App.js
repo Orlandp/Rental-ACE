@@ -2,11 +2,14 @@ import React, { useState, useEffect } from 'react';
 import PayPage from './pages/PayPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import TenantDashboard from './pages/tenant/Dashboard';
 import LandlordDashboard from './pages/landlord/Dashboard';
 import AdminDashboard from './pages/admin/Dashboard';
+import AgentDashboard from './pages/agent/Dashboard';
 import SuccessPage from './pages/SuccessPage';
 import ZoomControl from './components/ZoomControl';
+import ThemeToggle from './components/ThemeToggle';
 
 function HomePage() {
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 768);
@@ -24,7 +27,12 @@ function HomePage() {
 
       {/* Header */}
       <div style={homeStyles.header}>
+        <div style={homeStyles.headerGlow} />
         <div style={homeStyles.headerInner}>
+          <div style={homeStyles.badge}>
+            <span style={homeStyles.badgeDot} />
+            Trusted by tenants across Eldoret
+          </div>
           <div style={homeStyles.logoCircle}>🏠</div>
           <h1 style={homeStyles.title}>Ace Apartments</h1>
           <p style={homeStyles.subtitle}>
@@ -47,10 +55,9 @@ function HomePage() {
           <div style={homeStyles.cardIcon}>💳</div>
           <h3 style={homeStyles.cardTitle}>Pay Rent</h3>
           <p style={homeStyles.cardText}>
-            Scan the QR code on your door or click below
-            to pay your rent via M-Pesa instantly.
+            Click below to pay your rent via M-Pesa instantly.
           </p>
-          <a href="/pay?property=1" style={homeStyles.cardBtn}>
+          <a href="/pay" style={homeStyles.cardBtn}>
             Pay Now →
           </a>
         </div>
@@ -86,7 +93,7 @@ function HomePage() {
         {[
           { icon: '📱', text: 'M-Pesa STK Push' },
           { icon: '📊', text: 'Payment History'  },
-          { icon: '💬', text: 'SMS Notifications'},
+          { icon: '💬', text: 'WhatsApp Notifications'},
           { icon: '🔒', text: 'Secure & Private' },
         ].map((f) => (
           <div key={f.text} style={homeStyles.featureItem}>
@@ -116,9 +123,11 @@ function App() {
   else if (path === '/success')            page = <SuccessPage />;
   else if (path === '/login')              page = <LoginPage />;
   else if (path === '/register')           page = <RegisterPage />;
+  else if (path === '/forgot-password')    page = <ForgotPasswordPage />;
   else if (path === '/tenant/dashboard')   page = <TenantDashboard />;
   else if (path === '/landlord/dashboard') page = <LandlordDashboard />;
   else if (path === '/admin/dashboard')    page = <AdminDashboard />;
+  else if (path === '/agent/dashboard')    page = <AgentDashboard />;
   else page = (
     <div style={notFoundStyles.page}>
       <div style={notFoundStyles.card}>
@@ -136,6 +145,7 @@ function App() {
     <>
       {page}
       <ZoomControl />
+      <ThemeToggle />
     </>
   );
 }
@@ -143,40 +153,82 @@ function App() {
 const homeStyles = {
   page: {
     minHeight: '100vh',
-    backgroundColor: '#f4f6f8',
-    fontFamily: 'Segoe UI, Arial, sans-serif',
+    backgroundColor: 'var(--color-bg-alt)',
+    fontFamily: 'var(--font-sans)',
     display: 'flex',
     flexDirection: 'column',
   },
   header: {
-    backgroundColor: '#1a7a4a',
-    color: 'white',
-    padding: '60px 24px 80px',
+    position: 'relative',
+    overflow: 'hidden',
+    background: 'linear-gradient(160deg, var(--color-brand) 0%, var(--color-brand-dark) 100%)',
+    color: 'var(--color-text-on-brand)',
+    padding: '26px 24px 36px',
     textAlign: 'center',
   },
+  headerGlow: {
+    position: 'absolute',
+    top: '-110px',
+    right: '-100px',
+    width: '240px',
+    height: '240px',
+    borderRadius: '50%',
+    background: 'radial-gradient(circle, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0) 70%)',
+    pointerEvents: 'none',
+  },
   headerInner: {
+    position: 'relative',
     maxWidth: '600px',
     margin: '0 auto',
   },
+  badge: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '8px',
+    padding: '7px 16px',
+    borderRadius: '999px',
+    backgroundColor: 'rgba(255,255,255,0.14)',
+    border: '1px solid rgba(255,255,255,0.22)',
+    fontSize: '11px',
+    fontWeight: 600,
+    marginBottom: '12px',
+  },
+  badgeDot: {
+    width: '6px',
+    height: '6px',
+    borderRadius: '50%',
+    backgroundColor: '#5be89a',
+  },
   logoCircle: {
-    fontSize: '56px',
-    marginBottom: '20px',
+    width: '42px',
+    height: '42px',
+    margin: '0 auto 10px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: '20px',
+    borderRadius: '50%',
+    backgroundColor: 'rgba(255,255,255,0.14)',
+    border: '1px solid rgba(255,255,255,0.2)',
   },
   title: {
-    fontSize: '40px',
-    fontWeight: 700,
-    margin: '0 0 10px',
+    fontFamily: 'var(--font-display)',
+    fontSize: '24px',
+    fontWeight: 800,
+    letterSpacing: '-0.5px',
+    margin: '0 0 6px',
   },
   subtitle: {
-    fontSize: '16px',
-    opacity: 0.85,
-    margin: '0 0 16px',
+    fontSize: '13px',
+    fontWeight: 500,
+    opacity: 0.9,
+    margin: '0 0 8px',
   },
   description: {
-    fontSize: '15px',
-    opacity: 0.75,
+    fontSize: '13px',
+    opacity: 0.78,
     margin: 0,
-    lineHeight: 1.6,
+    lineHeight: 1.5,
   },
   cardsRow: {
     display: 'flex',
@@ -187,11 +239,11 @@ const homeStyles = {
     marginTop: '-40px',
   },
   card: {
-    backgroundColor: 'white',
+    backgroundColor: 'var(--color-surface)',
     borderRadius: '20px',
     padding: '36px 28px',
     width: '280px',
-    boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+    boxShadow: 'var(--shadow-md)',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
@@ -204,12 +256,12 @@ const homeStyles = {
   cardTitle: {
     fontSize: '20px',
     fontWeight: 700,
-    color: '#1a1a1a',
+    color: 'var(--color-ink)',
     margin: '0 0 12px',
   },
   cardText: {
     fontSize: '14px',
-    color: '#666',
+    color: 'var(--color-ink-soft)',
     lineHeight: 1.7,
     margin: '0 0 28px',
     flex: 1,
@@ -218,8 +270,8 @@ const homeStyles = {
     display: 'block',
     width: '100%',
     padding: '14px',
-    backgroundColor: '#1a7a4a',
-    color: 'white',
+    backgroundColor: 'var(--color-brand)',
+    color: 'var(--color-text-on-brand)',
     borderRadius: '12px',
     textDecoration: 'none',
     fontSize: '15px',
@@ -232,10 +284,10 @@ const homeStyles = {
     flexWrap: 'wrap',
     gap: '24px',
     padding: '20px 24px 40px',
-    backgroundColor: 'white',
+    backgroundColor: 'var(--color-surface)',
     margin: '0 24px 24px',
     borderRadius: '16px',
-    boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+    boxShadow: 'var(--shadow-sm)',
   },
   featureItem: {
     display: 'flex',
@@ -243,41 +295,41 @@ const homeStyles = {
     gap: '8px',
   },
   featureIcon: { fontSize: '20px' },
-  featureText: { fontSize: '14px', color: '#555', fontWeight: 500 },
+  featureText: { fontSize: '14px', color: 'var(--color-ink-soft)', fontWeight: 500 },
   footer: {
     textAlign: 'center',
     padding: '32px',
     marginTop: 'auto',
   },
-  footerText: { fontSize: '13px', color: '#aaa', margin: 0 },
+  footerText: { fontSize: '13px', color: 'var(--color-muted)', margin: 0 },
 };
 
 const notFoundStyles = {
   page: {
     minHeight: '100vh',
-    backgroundColor: '#f4f6f8',
+    backgroundColor: 'var(--color-bg-alt)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     fontFamily: 'Segoe UI, Arial, sans-serif',
   },
   card: {
-    background: 'white',
+    background: 'var(--color-surface)',
     borderRadius: '20px',
     padding: '48px 40px',
     textAlign: 'center',
-    boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+    boxShadow: 'var(--shadow-md)',
     maxWidth: '360px',
     width: '100%',
   },
   icon: { fontSize: '48px', margin: '0 0 16px' },
-  title: { fontSize: '24px', fontWeight: 700, margin: '0 0 12px', color: '#1a1a1a' },
-  text: { fontSize: '14px', color: '#888', margin: '0 0 28px', lineHeight: 1.6 },
+  title: { fontSize: '24px', fontWeight: 700, margin: '0 0 12px', color: 'var(--color-ink)' },
+  text: { fontSize: '14px', color: 'var(--color-muted)', margin: '0 0 28px', lineHeight: 1.6 },
   btn: {
     display: 'inline-block',
     padding: '14px 32px',
-    backgroundColor: '#1a7a4a',
-    color: 'white',
+    backgroundColor: 'var(--color-brand)',
+    color: 'var(--color-text-on-brand)',
     borderRadius: '12px',
     textDecoration: 'none',
     fontSize: '15px',

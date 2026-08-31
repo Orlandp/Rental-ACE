@@ -15,7 +15,7 @@ function AmountCard({ rentAmount, balance, waterBill }) {
 
       <div style={styles.col}>
         <p style={styles.label}>Balance</p>
-        <p style={{ ...styles.value, color: balance > 0 ? '#c0392b' : '#1a1a1a' }}>
+        <p style={{ ...styles.value, color: balance > 0 ? 'var(--color-danger-strong)' : 'var(--color-ink)' }}>
           Ksh {(balance || 0).toLocaleString()}
         </p>
       </div>
@@ -33,19 +33,19 @@ function AmountCard({ rentAmount, balance, waterBill }) {
 
 const styles = {
   card: {
-    background: 'white',
+    background: 'var(--color-surface)',
     borderRadius: '16px',
     margin: '-20px 16px 0',
-    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+    boxShadow: 'var(--shadow-md)',
     padding: '16px',
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   col: { flex: 1, textAlign: 'center' },
-  label: { fontSize: '11px', color: '#888', margin: '0 0 4px', textTransform: 'uppercase' },
-  value: { fontSize: '16px', fontWeight: 600, margin: 0 },
-  divider: { width: '1px', height: '40px', backgroundColor: '#e8e8e8' },
+  label: { fontSize: '11px', color: 'var(--color-muted)', margin: '0 0 4px', textTransform: 'uppercase' },
+  value: { fontSize: '16px', fontWeight: 600, margin: 0, color: 'var(--color-ink)' },
+  divider: { width: '1px', height: '40px', backgroundColor: 'var(--color-border-soft)' },
 };
 
 export default AmountCard;

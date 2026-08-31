@@ -7,7 +7,7 @@ function useIdleLogout (timeoutMinutes) {
         const timeoutMs = timeoutMinutes * 60 * 1000;
         
         function logout() {
-            fetch('http://localhost:5000/api/auth/logout', {
+            fetch('http://localhost:5001/api/auth/logout', {
                 method: 'POST',
                 credentials: 'include',
             }).finally(() => {

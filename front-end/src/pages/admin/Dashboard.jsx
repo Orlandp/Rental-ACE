@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import useIdleLogout from '../../hooks/useIdleLogout';
+import useBackButtonLogout from '../../hooks/useBackButtonLogout';
 
 const mockAdmin = { name: 'James Orlando', property: 'Ace Apartments', location: 'Eldoret' };
 
 const messageTemplates = {
-  reminder: 'Dear tenant, your rent is due on the 1st. Please pay via the QR code on your door.',
+  reminder: 'Dear tenant, your rent is due on the 1st. Please use the payment link sent to you via M-Pesa.',
   confirmed: 'Your payment has been received. Thank you.',
   balance: 'You have an outstanding balance. Please clear it at your earliest convenience.',
   custom: '',
@@ -25,11 +26,8 @@ function getNextBillingPeriod(bills) {
 
 function AdminDashboard() {
   useIdleLogout(2.0);
-  const [waterHistory, setWaterHistory] = useState([
-    { id: 1, month: 'july 2026', amount: 1200, house7: 1200, house8: 980 },
-    { id: 2, month: 'june 2026', amount: 1100, house7: 1100, house8: 900 },
-    { id: 3, month: 'may 2026', amount: 1000, house7: 1000, house8: 850 },
-  ]);
+  useBackButtonLogout();
+  const [waterHistory, setWaterHistory] = useState([]);
   const [recipient, setRecipient] = useState('');
   const [messageTemplate, setMessageTemplate] = useState('');
   const [messageText, setMessageText] = useState('');
@@ -37,8 +35,7 @@ function AdminDashboard() {
   const [expenses, setExpenses] = useState([]);
   const [newCategory, setNewCategory] = useState('');
   const [newDescription, setNewDescription] = useState('');
-  const [newWater7, setNewWater7] = useState('');
-  const [newWater8, setNewWater8] = useState('');
+  const [newWaterAmounts, setNewWaterAmounts] = useState({});
   const [newAmount, setNewAmount] = useState('');
   const [allPayments, setAllPayments] = useState([]);
   const [filterStatus, setFilterStatus] = useState('all');
@@ -69,6 +66,13 @@ function AdminDashboard() {
   const [editingTenant, setEditingTenant] = useState(null);
   const [editName, setEditName] = useState('');
   const [editPhone, setEditPhone] = useState('');
+  const [vacatingTenant, setVacatingTenant] = useState(null);
+  const [vacatePreview, setVacatePreview] = useState(null);
+  const [deductionRows, setDeductionRows] = useState([]);
+  const [vacatePhotos, setVacatePhotos] = useState([null, null, null]);
+  const [vacateSubmitting, setVacateSubmitting] = useState(false);
+  const [viewingDeductionsFor, setViewingDeductionsFor] = useState(null);
+  const [deductionsData, setDeductionsData] = useState(null);
   const [properties, setProperties] = useState([]);
   const [newPropertyName, setNewPropertyName] = useState('');
   const [newPropertyLocation, setNewPropertyLocation] = useState('');
@@ -77,11 +81,20 @@ function AdminDashboard() {
   const [newUnitPropertyId, setNewUnitPropertyId] = useState('');
   const [newUnitNumber, setNewUnitNumber] = useState('');
   const [newUnitRent, setNewUnitRent] = useState('');
-  const [newUnitPaymentType, setNewUnitPaymentType] = useState('paybill');
-  const [newUnitPhone, setNewUnitPhone] = useState('');
   const [newUnitHasWater, setNewUnitHasWater] = useState(false);
-  const [nextPeriod7, setNextPeriod7] = useState(null);
-  const [nextPeriod8, setNextPeriod8] = useState(null);
+  const [newUnitWaterAmount, setNewUnitWaterAmount] = useState('');
+  const [newUnitPaybill, setNewUnitPaybill] = useState('');
+  const [newUnitAccount, setNewUnitAccount] = useState('');
+  const [bulkPaybill, setBulkPaybill] = useState('');
+  const [bulkAccount, setBulkAccount] = useState('');
+  const [bulkSelectedUnits, setBulkSelectedUnits] = useState([]);
+  const [bulkApplying, setBulkApplying] = useState(false);
+  const [agents, setAgents] = useState([]);
+  const [pendingAgents, setPendingAgents] = useState([]);
+  const [passwordResetRequests, setPasswordResetRequests] = useState([]);
+  const [editingUnitPaybill, setEditingUnitPaybill] = useState('');
+  const [editingUnitAccount, setEditingUnitAccount] = useState('');
+  const [nextPeriods, setNextPeriods] = useState({});
   const [invoices, setInvoices] = useState([]);
   const [invoiceUnitId, setInvoiceUnitId] = useState('');
   const [generatingInvoice, setGeneratingInvoice] = useState(false);
@@ -97,7 +110,7 @@ function AdminDashboard() {
 
   async function loadPending() {
     try {
-      const res = await fetch('http://localhost:5000/api/tenants/pending', {
+      const res = await fetch('http://localhost:5001/api/tenants/pending', {
         credentials: 'include',
       });
       const data = await res.json();
@@ -109,19 +122,23 @@ function AdminDashboard() {
 
   async function loadUnits() {
     try {
-      const res = await fetch('http://localhost:5000/api/units', {
+      const res = await fetch('http://localhost:5001/api/units', {
         credentials: 'include',
       });
       const data = await res.json();
-      if (res.ok) setUnits(data);
+      if (res.ok) {
+        setUnits(data);
+        return data;
+      }
     } catch (err) {
       console.error('Could not load units:', err);
     }
+    return [];
   }
 
   async function loadProperties() {
     try {
-      const res = await fetch('http://localhost:5000/api/properties', {
+      const res = await fetch('http://localhost:5001/api/properties', {
         credentials: 'include',
       });
       const data = await res.json();
@@ -137,7 +154,7 @@ function AdminDashboard() {
       return;
     }
     try {
-      const res = await fetch('http://localhost:5000/api/properties', {
+      const res = await fetch('http://localhost:5001/api/properties', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -171,7 +188,7 @@ function AdminDashboard() {
     if (!confirmed) return;
 
     try {
-      const res = await fetch(`http://localhost:5000/api/properties/${propertyId}`, {
+      const res = await fetch(`http://localhost:5001/api/properties/${propertyId}`, {
         method: 'DELETE',
         credentials: 'include',
       });
@@ -193,16 +210,17 @@ function AdminDashboard() {
       return;
     }
     try {
-      const res = await fetch(`http://localhost:5000/api/properties/${newUnitPropertyId}/units`, {
+      const res = await fetch(`http://localhost:5001/api/properties/${newUnitPropertyId}/units`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
           unit_number: parseInt(newUnitNumber),
           rent_amount: parseInt(newUnitRent),
-          payment_type: newUnitPaymentType,
-          phone_no: newUnitPaymentType === 'phone' ? newUnitPhone : null,
           has_water_bill: newUnitHasWater ? 1 : 0,
+          water_bill: newUnitHasWater ? (parseInt(newUnitWaterAmount) || 0) : 0,
+          paybill_no: newUnitPaybill.trim() || null,
+          account_no: newUnitAccount.trim() || null,
         }),
       });
       const data = await res.json();
@@ -214,12 +232,62 @@ function AdminDashboard() {
       setNewUnitPropertyId('');
       setNewUnitNumber('');
       setNewUnitRent('');
-      setNewUnitPaymentType('paybill');
-      setNewUnitPhone('');
       setNewUnitHasWater(false);
+      setNewUnitWaterAmount('');
+      setNewUnitPaybill('');
+      setNewUnitAccount('');
       alert('Unit added!');
     } catch (err) {
       alert('Could not reach the server.');
+    }
+  }
+
+  function toggleBulkUnit(unitId) {
+    setBulkSelectedUnits((prev) =>
+      prev.includes(unitId) ? prev.filter((id) => id !== unitId) : [...prev, unitId]
+    );
+  }
+
+  function toggleBulkSelectAll() {
+    setBulkSelectedUnits((prev) => (prev.length === units.length ? [] : units.map((u) => u.unit_id)));
+  }
+
+  async function handleBulkAssignPaybill() {
+    if (!bulkPaybill.trim() && !bulkAccount.trim()) {
+      alert('Enter a paybill number, an account number, or both.');
+      return;
+    }
+    if (bulkSelectedUnits.length === 0) {
+      alert('Select at least one unit (or use "Select All").');
+      return;
+    }
+    setBulkApplying(true);
+    try {
+      const results = await Promise.all(
+        bulkSelectedUnits.map((unitId) =>
+          fetch(`http://localhost:5001/api/units/${unitId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+              paybill_no: bulkPaybill.trim() || null,
+              account_no: bulkAccount.trim() || null,
+            }),
+          })
+        )
+      );
+      const failed = results.filter((r) => !r.ok).length;
+      await loadUnits();
+      setBulkSelectedUnits([]);
+      if (failed > 0) {
+        alert(`Applied to ${results.length - failed} unit(s). ${failed} failed — please retry those.`);
+      } else {
+        alert(`Paybill/account applied to ${results.length} unit(s).`);
+      }
+    } catch (err) {
+      alert('Could not reach the server.');
+    } finally {
+      setBulkApplying(false);
     }
   }
 
@@ -230,7 +298,7 @@ function AdminDashboard() {
     if (!confirmed) return;
 
     try {
-      const res = await fetch(`http://localhost:5000/api/units/${unitId}`, {
+      const res = await fetch(`http://localhost:5001/api/units/${unitId}`, {
         method: 'DELETE',
         credentials: 'include',
       });
@@ -248,7 +316,7 @@ function AdminDashboard() {
 
   async function loadTenants() {
     try {
-      const res = await fetch('http://localhost:5000/api/tenants', {
+      const res = await fetch('http://localhost:5001/api/tenants', {
         credentials: 'include',
       });
       const data = await res.json();
@@ -258,25 +326,51 @@ function AdminDashboard() {
     }
   }
 
-  async function handleDownloadReceipt(paymentId) {
+  async function downloadPdf(url, filename) {
     try {
-      const res = await fetch(`http://localhost:5000/api/payments/${paymentId}/receipt/pdf`, {
-        credentials: 'include',
-      });
+      const res = await fetch(url, { credentials: 'include' });
       if (!res.ok) {
-        alert('Could not generate receipt PDF.');
+        alert('Could not generate PDF.');
         return;
       }
       const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
+      const blobUrl = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url;
-      a.download = `receipt-RCT-${String(paymentId).padStart(5, '0')}.pdf`;
+      a.href = blobUrl;
+      a.download = filename;
       a.click();
-      window.URL.revokeObjectURL(url);
+      window.URL.revokeObjectURL(blobUrl);
     } catch (err) {
       alert('Could not reach the server.');
     }
+  }
+
+  async function handleDownloadReceipt(paymentId) {
+    await downloadPdf(
+      `http://localhost:5001/api/payments/${paymentId}/receipt/pdf`,
+      `receipt-RCT-${String(paymentId).padStart(5, '0')}.pdf`
+    );
+  }
+
+  async function handleDownloadDepositReceipt(tenantId) {
+    await downloadPdf(
+      `http://localhost:5001/api/tenants/${tenantId}/deposit-receipt/pdf`,
+      `deposit-receipt-DEP-${String(tenantId).padStart(5, '0')}.pdf`
+    );
+  }
+
+  async function handleDownloadAgreement(tenant) {
+    await downloadPdf(
+      `http://localhost:5001/api/tenants/${tenant.user_id}/agreement/pdf`,
+      `tenancy-agreement-house-${tenant.unit_id}.pdf`
+    );
+  }
+
+  async function handleDownloadVacateReceipt(tenantId) {
+    await downloadPdf(
+      `http://localhost:5001/api/tenants/${tenantId}/vacate-receipt/pdf`,
+      `vacate-settlement-VAC-${String(tenantId).padStart(5, '0')}.pdf`
+    );
   }
 
   async function handleRecordManualPayment() {
@@ -287,7 +381,7 @@ function AdminDashboard() {
     setManualError('');
     setSubmittingManual(true);
     try {
-      const res = await fetch('http://localhost:5000/api/payments/manual', {
+      const res = await fetch('http://localhost:5001/api/payments/manual', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -306,10 +400,20 @@ function AdminDashboard() {
         return;
       }
       await loadPayments();
+      await loadInvoices();
       setManualUnitId('');
       setManualAmount('');
       setManualPhone('');
       setManualMpesaCode('');
+
+      if (data.allocations && data.allocations.length > 0) {
+        const summary = data.allocations
+          .map((a) => `${a.invoice_no} (${a.month}): Ksh ${a.amount_applied.toLocaleString()} — ${a.status.toUpperCase()}`)
+          .join('\n');
+        alert(`Payment recorded. Applied to:\n${summary}`);
+      } else {
+        alert('Payment recorded, but no outstanding invoice was found to apply it to.');
+      }
     } catch (err) {
       setManualError('Could not reach the server.');
     } finally {
@@ -319,7 +423,7 @@ function AdminDashboard() {
 
   async function loadPayments() {
     try {
-      const res = await fetch('http://localhost:5000/api/payments', {
+      const res = await fetch('http://localhost:5001/api/payments', {
         credentials: 'include',
       });
       const data = await res.json();
@@ -334,7 +438,7 @@ function AdminDashboard() {
 
   async function loadExpenses() {
     try {
-      const res = await fetch ('http://localhost:5000/api/expenses', {
+      const res = await fetch ('http://localhost:5001/api/expenses', {
         credentials: 'include',
       });
       const data = await res.json();
@@ -344,30 +448,37 @@ function AdminDashboard() {
     }
   }
 
-  async function loadWaterBills() {
+  async function loadWaterBills(unitsList) {
+    const waterUnits = (unitsList || units).filter((u) => u.has_water_bill);
+
+    if (waterUnits.length === 0) {
+      setWaterHistory([]);
+      setNextPeriods({});
+      return;
+    }
+
     try {
-      const [res7, res8] = await Promise.all([
-        fetch('http://localhost:5000/api/water-bills/7', { credentials: 'include' }),
-        fetch('http://localhost:5000/api/water-bills/8', { credentials: 'include' }),
-      ]);
-      const data7 = await res7.json();
-      const data8 = await res8.json();
-      if (!res7.ok || !res8.ok) return;
+      const responses = await Promise.all(
+        waterUnits.map((u) =>
+          fetch(`http://localhost:5001/api/water-bills/${u.unit_id}`, { credentials: 'include' })
+        )
+      );
+      if (responses.some((r) => !r.ok)) return;
+      const dataByUnit = await Promise.all(responses.map((r) => r.json()));
 
-      setNextPeriod7(getNextBillingPeriod(data7));
-      setNextPeriod8(getNextBillingPeriod(data8));
-
+      const periods = {};
       const merged = {};
-      data7.forEach((b) => {
-        const key = `${b.month}-${b.year}`;
-        merged[key] = merged[key] || { id: key, month: `${b.month} ${b.year}`, house7: 0, house8: 0 };
-        merged[key].house7 = b.amount;
+      waterUnits.forEach((u, i) => {
+        const bills = dataByUnit[i];
+        periods[u.unit_id] = getNextBillingPeriod(bills);
+        bills.forEach((b) => {
+          const key = `${b.month}-${b.year}`;
+          merged[key] = merged[key] || { id: key, month: `${b.month} ${b.year}`, amounts: {} };
+          merged[key].amounts[u.unit_id] = b.amount;
+        });
       });
-      data8.forEach((b) => {
-        const key = `${b.month}-${b.year}`;
-        merged[key] = merged[key] || { id: key, month: `${b.month} ${b.year}`, house7: 0, house8: 0 };
-        merged[key].house8 = b.amount;
-      });
+
+      setNextPeriods(periods);
       setWaterHistory(Object.values(merged));
     } catch (err) {
       console.error('Could not load water bills:', err);
@@ -376,7 +487,7 @@ function AdminDashboard() {
 
   async function loadInvoices() {
     try {
-      const res = await fetch('http://localhost:5000/api/invoices', {
+      const res = await fetch('http://localhost:5001/api/invoices', {
         credentials: 'include',
       });
       const data = await res.json();
@@ -394,7 +505,7 @@ function AdminDashboard() {
     setInvoiceError('');
     setGeneratingInvoice(true);
     try {
-      const res = await fetch('http://localhost:5000/api/invoices', {
+      const res = await fetch('http://localhost:5001/api/invoices', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -414,9 +525,44 @@ function AdminDashboard() {
     }
   }
 
+  async function handleGenerateMonthlyInvoices() {
+    const confirmed = window.confirm(
+      "Generate this month's invoice for every active tenant who doesn't already have one?"
+    );
+    if (!confirmed) return;
+
+    setGeneratingInvoice(true);
+    try {
+      const res = await fetch('http://localhost:5001/api/invoices/generate-monthly', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({}),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Could not run monthly generation.');
+        return;
+      }
+      await loadInvoices();
+      alert(data.message);
+    } catch (err) {
+      alert('Could not reach the server.');
+    } finally {
+      setGeneratingInvoice(false);
+    }
+  }
+
+  async function handleDownloadInvoiceReceipt(invoiceId) {
+    await downloadPdf(
+      `http://localhost:5001/api/invoices/${invoiceId}/receipt/pdf`,
+      `rent-receipt-INV-${String(invoiceId).padStart(5, '0')}.pdf`
+    );
+  }
+
   async function handleDeleteInvoice(invoiceId) {
     try {
-      const res = await fetch(`http://localhost:5000/api/invoices/${invoiceId}`, {
+      const res = await fetch(`http://localhost:5001/api/invoices/${invoiceId}`, {
         method: 'DELETE',
         credentials: 'include',
       });
@@ -433,7 +579,7 @@ function AdminDashboard() {
 
   async function loadMessages() {
     try {
-      const res = await fetch ('http://localhost:5000/api/messages', {
+      const res = await fetch ('http://localhost:5001/api/messages', {
         credentials: 'include',
       });
       const data = await res.json();
@@ -449,13 +595,16 @@ function AdminDashboard() {
         setAdmin(mockAdmin);
         await loadExpenses();
         await loadMessages();
-        await loadUnits();
-        await loadWaterBills();
+        const unitsData = await loadUnits();
+        await loadWaterBills(unitsData);
         await loadProperties();
         await loadTenants();
         await loadPending();
         await loadPayments();
         await loadInvoices();
+        await loadAgents();
+        await loadPendingAgents();
+        await loadPasswordResetRequests();
       } catch (err) {
         setError('Could not load dashboard.');
       } finally {
@@ -463,12 +612,14 @@ function AdminDashboard() {
       }
     }
     loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const totalUnits = units.length;
   const occupiedUnits = units.filter((u) => (u.status || '').toUpperCase() === 'OCCUPIED').length;
   const availableUnits = units.filter((u) => (u.status || '').toUpperCase() === 'AVAILABLE').length;
   const pendingCount = pending.length;
+  const waterUnits = units.filter((u) => u.has_water_bill);
   const filteredPayments = allPayments.filter((p) => {
     if (filterStatus !== 'all' && p.status !== filterStatus) return false;
     if (filterMonth !== 'all' && p.month !== filterMonth) return false;
@@ -486,12 +637,17 @@ function AdminDashboard() {
   const availableMonths = [...new Set(allPayments.map((p) => p.month))];
 
   function handleLogout() {
-    window.location.href = '/login';
+    fetch('http://localhost:5001/api/auth/logout', {
+      method: 'POST',
+      credentials: 'include',
+    }).finally(() => {
+      window.location.href = '/login';
+    });
   }
 
   async function handleApprove(userId, unitId) {
     try {
-      const res = await fetch(`http://localhost:5000/api/tenants/${userId}/approve`, {
+      const res = await fetch(`http://localhost:5001/api/tenants/${userId}/approve`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -516,7 +672,7 @@ function AdminDashboard() {
     if (!confirmed) return;
 
     try {
-      const res = await fetch(`http://localhost:5000/api/tenants/${userId}/reject`, {
+      const res = await fetch(`http://localhost:5001/api/tenants/${userId}/reject`, {
         method: 'DELETE',
         credentials: 'include',
       });
@@ -532,45 +688,162 @@ function AdminDashboard() {
     }
   }
 
+  async function loadAgents() {
+    try {
+      const res = await fetch('http://localhost:5001/api/agents', { credentials: 'include' });
+      const data = await res.json();
+      if (res.ok) setAgents(data);
+    } catch (err) {
+      console.error('Could not load agents:', err);
+    }
+  }
+
+  async function loadPendingAgents() {
+    try {
+      const res = await fetch('http://localhost:5001/api/agents/pending', { credentials: 'include' });
+      const data = await res.json();
+      if (res.ok) setPendingAgents(data);
+    } catch (err) {
+      console.error('Could not load pending agents:', err);
+    }
+  }
+
+  async function handleApproveAgent(userId) {
+    try {
+      const res = await fetch(`http://localhost:5001/api/agents/${userId}/approve`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({}),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Could not approve agent.');
+        return;
+      }
+      await loadPendingAgents();
+      await loadAgents();
+      alert('Agent approved!');
+    } catch (err) {
+      alert('Could not reach the server.');
+    }
+  }
+
+  async function handleRejectAgent(userId) {
+    const confirmed = window.confirm('Reject and remove this agent applicant?');
+    if (!confirmed) return;
+
+    try {
+      const res = await fetch(`http://localhost:5001/api/agents/${userId}/reject`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Could not reject agent.');
+        return;
+      }
+      await loadPendingAgents();
+      alert('Agent applicant rejected.');
+    } catch (err) {
+      alert('Could not reach the server.');
+    }
+  }
+
+  async function loadPasswordResetRequests() {
+    try {
+      const res = await fetch('http://localhost:5001/api/auth/password-reset-requests', { credentials: 'include' });
+      const data = await res.json();
+      if (res.ok) setPasswordResetRequests(data);
+    } catch (err) {
+      console.error('Could not load password reset requests:', err);
+    }
+  }
+
+  async function handleApprovePasswordReset(userId) {
+    const confirmed = window.confirm('Reset this account\'s password? A new temporary password will be generated.');
+    if (!confirmed) return;
+
+    try {
+      const res = await fetch(`http://localhost:5001/api/auth/password-reset-requests/${userId}/approve`, {
+        method: 'PUT',
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Could not reset password.');
+        return;
+      }
+      await loadPasswordResetRequests();
+      alert(`Password reset. Temporary password: ${data.temp_password}\n\nShare this with the user directly.`);
+    } catch (err) {
+      alert('Could not reach the server.');
+    }
+  }
+
+  async function handleDismissPasswordReset(userId) {
+    const confirmed = window.confirm('Dismiss this reset request without changing the password?');
+    if (!confirmed) return;
+
+    try {
+      const res = await fetch(`http://localhost:5001/api/auth/password-reset-requests/${userId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Could not dismiss request.');
+        return;
+      }
+      await loadPasswordResetRequests();
+    } catch (err) {
+      alert('Could not reach the server.');
+    }
+  }
+
   function getPaymentColor(status) {
-    if (status === 'paid') return '#1a7a4a';
-    if (status === 'unpaid') return '#c0392b';
-    return '#888';
+    if (status === 'paid') return 'var(--color-brand)';
+    if (status === 'unpaid') return 'var(--color-danger-strong)';
+    return 'var(--color-muted)';
   }
 
   function getStatusColor(status) {
     const s = (status || '').toUpperCase();
-    if (s === 'OCCUPIED') return '#1a7a4a';
-    if (s === 'AVAILABLE') return '#2980b9';
-    if (s === 'VACATING') return '#f57c00';
-    if (s === 'MAINTENANCE') return '#c0392b';
-    return '#888';
+    if (s === 'OCCUPIED') return 'var(--color-brand)';
+    if (s === 'AVAILABLE') return 'var(--color-info-strong)';
+    if (s === 'VACATING') return 'var(--color-warning)';
+    if (s === 'MAINTENANCE') return 'var(--color-danger-strong)';
+    return 'var(--color-muted)';
   }
 
   function getStatusBg(status) {
     const s = (status || '').toUpperCase();
-    if (s === 'OCCUPIED') return '#e8f5ee';
-    if (s === 'AVAILABLE') return '#e8f4fd';
-    if (s === 'VACATING') return '#fff8e1';
-    if (s === 'MAINTENANCE') return '#fdecea';
-    return '#f4f6f8';
+    if (s === 'OCCUPIED') return 'var(--color-primary-light)';
+    if (s === 'AVAILABLE') return 'var(--color-info-light)';
+    if (s === 'VACATING') return 'var(--color-warning-soft)';
+    if (s === 'MAINTENANCE') return 'var(--color-danger-light)';
+    return 'var(--color-bg-alt)';
   }
 
   function handleEditUnit(unit) {
     setEditingUnit(unit.unit_id);
     setEditRent(unit.rent_amount);
     setEditWater(unit.water_bill || 0);
+    setEditingUnitPaybill(unit.paybill_no || '');
+    setEditingUnitAccount(unit.account_no || '');
   }
 
   async function handleSaveUnit(unitId) {
     try {
-      const res = await fetch(`http://localhost:5000/api/units/${unitId}`, {
+      const res = await fetch(`http://localhost:5001/api/units/${unitId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
           rent_amount: parseInt(editRent),
           water_bill: parseInt(editWater),
+          paybill_no: editingUnitPaybill.trim() || null,
+          account_no: editingUnitAccount.trim() || null,
         }),
       });
       const data = await res.json();
@@ -587,7 +860,7 @@ function AdminDashboard() {
 
   async function handleStatusChange(unitId, newStatus) {
     try {
-      const res = await fetch(`http://localhost:5000/api/units/${unitId}`, {
+      const res = await fetch(`http://localhost:5001/api/units/${unitId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -614,16 +887,83 @@ function AdminDashboard() {
     setEditingTenant(null);
   }
 
-  async function handleVacate(tenantId) {
-    const confirmed = window.confirm(
-      'Are you sure you want to mark this tenant as vacated?',
-    );
-    if (!confirmed) return;
+  async function handleOpenVacate(tenant) {
+    setVacatingTenant(tenant);
+    setVacatePreview(null);
+    setDeductionRows([]);
+    setVacatePhotos([null, null, null]);
 
     try {
-      const res = await fetch(`http://localhost:5000/api/tenants/${tenantId}/vacate`, {
+      const res = await fetch(`http://localhost:5001/api/tenants/${tenant.user_id}/vacate-preview`, {
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Could not load vacate preview.');
+        setVacatingTenant(null);
+        return;
+      }
+      setVacatePreview(data);
+    } catch (err) {
+      alert('Could not reach the server.');
+      setVacatingTenant(null);
+    }
+  }
+
+  function handleCancelVacate() {
+    setVacatingTenant(null);
+    setVacatePreview(null);
+    setDeductionRows([]);
+    setVacatePhotos([null, null, null]);
+  }
+
+  function handleAddDeductionRow() {
+    setDeductionRows([...deductionRows, { reason: '', amount: '' }]);
+  }
+
+  function handleRemoveDeductionRow(index) {
+    setDeductionRows(deductionRows.filter((_, i) => i !== index));
+  }
+
+  function handleDeductionChange(index, field, value) {
+    setDeductionRows(deductionRows.map((row, i) => (i === index ? { ...row, [field]: value } : row)));
+  }
+
+  function handlePhotoChange(index, file) {
+    setVacatePhotos(vacatePhotos.map((p, i) => (i === index ? file : p)));
+  }
+
+  function getTotalDeductions() {
+    return deductionRows.reduce((sum, row) => {
+      const amount = parseFloat(row.amount);
+      return sum + (isNaN(amount) ? 0 : amount);
+    }, 0);
+  }
+
+  function getLiveRefund() {
+    if (!vacatePreview) return 0;
+    return vacatePreview.refund_amount - getTotalDeductions();
+  }
+
+  async function handleConfirmVacate() {
+    if (!vacatingTenant) return;
+
+    const validDeductions = deductionRows
+      .map((row) => ({ reason: row.reason.trim(), amount: parseFloat(row.amount) }))
+      .filter((row) => row.reason && !isNaN(row.amount) && row.amount > 0);
+
+    setVacateSubmitting(true);
+    try {
+      const formData = new FormData();
+      formData.append('deductions', JSON.stringify(validDeductions));
+      vacatePhotos.forEach((file, i) => {
+        if (file) formData.append(`photo${i + 1}`, file);
+      });
+
+      const res = await fetch(`http://localhost:5001/api/tenants/${vacatingTenant.user_id}/vacate`, {
         method: 'PUT',
         credentials: 'include',
+        body: formData,
       });
       const data = await res.json();
       if (!res.ok) {
@@ -632,15 +972,93 @@ function AdminDashboard() {
       }
       await loadTenants();
       await loadUnits();
-      alert('Tenant vacated.');
+      await loadInvoices();
+      handleCancelVacate();
+      alert(
+        data.refund_amount >= 0
+          ? `Tenant vacated. Deposit refund due: Ksh ${data.refund_amount.toLocaleString()}`
+          : `Tenant vacated. Tenant still owes: Ksh ${Math.abs(data.refund_amount).toLocaleString()}`
+      );
+    } catch (err) {
+      alert('Could not reach the server.');
+    } finally {
+      setVacateSubmitting(false);
+    }
+  }
+
+  async function handleViewDeductions(tenant) {
+    if (viewingDeductionsFor === tenant.user_id) {
+      setViewingDeductionsFor(null);
+      setDeductionsData(null);
+      return;
+    }
+    setViewingDeductionsFor(tenant.user_id);
+    setDeductionsData(null);
+    try {
+      const res = await fetch(`http://localhost:5001/api/tenants/${tenant.user_id}/deductions`, {
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (res.ok) setDeductionsData(data);
+    } catch (err) {
+      console.error('Could not load deductions:', err);
+    }
+  }
+
+  async function handleUnvacate(tenant) {
+    let unitIdToUse = tenant.unit_id;
+
+    if (!unitIdToUse) {
+      const availableUnits = units.filter((u) => (u.status || '').toUpperCase() === 'AVAILABLE');
+      if (availableUnits.length === 0) {
+        alert(`${tenant.full_name} has no unit on record (vacated before unit history was tracked), and there are no available units to restore them into.`);
+        return;
+      }
+      const optionsText = availableUnits.map((u) => u.unit_number).join(', ');
+      const chosen = window.prompt(
+        `${tenant.full_name} has no unit on record (vacated before unit history was tracked).\n` +
+        `Enter the house number to restore them into.\nAvailable: ${optionsText}`
+      );
+      if (chosen === null) return;
+      const match = availableUnits.find((u) => String(u.unit_number) === chosen.trim());
+      if (!match) {
+        alert('That house number is not an available unit.');
+        return;
+      }
+      unitIdToUse = match.unit_id;
+    } else {
+      const confirmed = window.confirm(
+        `Restore ${tenant.full_name} to active status in their previous unit?`
+      );
+      if (!confirmed) return;
+    }
+
+    try {
+      const res = await fetch(`http://localhost:5001/api/tenants/${tenant.user_id}/unvacate`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ unit_id: unitIdToUse }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Could not restore tenant.');
+        return;
+      }
+      await loadTenants();
+      await loadUnits();
+      await loadInvoices();
+      alert(data.message);
     } catch (err) {
       alert('Could not reach the server.');
     }
   }
 
   async function handleMarkDeposit(tenant) {
+    const expected = tenant.unit_deposit_amount ?? 0;
     const amountStr = window.prompt(
-      `Enter the deposit amount received from ${tenant.full_name}:`
+      `Enter the deposit amount received from ${tenant.full_name}:`,
+      expected ? String(expected) : ''
     );
     if (amountStr === null) return;
 
@@ -651,7 +1069,7 @@ function AdminDashboard() {
     }
 
     try {
-      const res = await fetch(`http://localhost:5000/api/tenants/${tenant.user_id}/deposit`, {
+      const res = await fetch(`http://localhost:5001/api/tenants/${tenant.user_id}/deposit`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -669,12 +1087,58 @@ function AdminDashboard() {
     }
   }
 
+  async function handleVerifyId(tenant) {
+    try {
+      const res = await fetch(`http://localhost:5001/api/tenants/${tenant.user_id}/verify-id`, {
+        method: 'PUT',
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Could not verify ID.');
+        return;
+      }
+      await loadTenants();
+      await loadInvoices();
+      if (data.first_invoice) {
+        alert(`${data.message}\n\nFirst invoice generated: Ksh ${data.first_invoice.rent_amount.toLocaleString()} for ${data.first_invoice.month} (no penalty applies to this one).`);
+      } else {
+        alert(data.message);
+      }
+    } catch (err) {
+      alert('Could not reach the server.');
+    }
+  }
+
+  async function handleRequestId(tenant) {
+    const confirmed = window.confirm(
+      `Ask ${tenant.full_name} to submit a fresh ID/passport photo? They'll see this prompt next time they open their dashboard.`
+    );
+    if (!confirmed) return;
+
+    try {
+      const res = await fetch(`http://localhost:5001/api/tenants/${tenant.user_id}/request-id`, {
+        method: 'PUT',
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Could not request ID.');
+        return;
+      }
+      await loadTenants();
+      alert(data.message);
+    } catch (err) {
+      alert('Could not reach the server.');
+    }
+  }
+
   function getCategoryStyle(category) {
-    if (category === 'Repairs') return { bg: '#fdecea', color: '#c0392b' };
-    if (category === 'Cleaning') return { bg: '#e8f4fd', color: '#2980b9' };
-    if (category === 'Utilities') return { bg: '#fff8e1', color: '#f57c00' };
-    if (category === 'Security') return { bg: '#f3e5f5', color: '#8e24aa' };
-    return { bg: '#f4f6f8', color: '#555' };
+    if (category === 'Repairs') return { bg: 'var(--color-danger-light)', color: 'var(--color-danger-strong)' };
+    if (category === 'Cleaning') return { bg: 'var(--color-info-light)', color: 'var(--color-info-strong)' };
+    if (category === 'Utilities') return { bg: 'var(--color-warning-soft)', color: 'var(--color-warning)' };
+    if (category === 'Security') return { bg: 'var(--color-accent-purple-light)', color: 'var(--color-accent-purple)' };
+    return { bg: 'var(--color-bg-alt)', color: 'var(--color-ink-soft)' };
   }
 
   async function handleAddExpense() {
@@ -693,7 +1157,7 @@ function AdminDashboard() {
     }
 
     try {
-      const res = await fetch('http://localhost:5000/api/expenses', {
+      const res = await fetch('http://localhost:5001/api/expenses', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -723,7 +1187,7 @@ function AdminDashboard() {
     if (!confirmed) return;
 
     try {
-      const res = await fetch(`http://localhost:5000/api/expenses/${id}`, {
+      const res = await fetch(`http://localhost:5001/api/expenses/${id}`, {
         method: 'DELETE',
         credentials: 'include',
       });
@@ -752,12 +1216,13 @@ function AdminDashboard() {
     { key: 'dashboard', label: 'Dashboard', icon: '📊' },
     { key: 'units', label: 'Units', icon: '🏘️' },
     { key: 'tenants', label: 'Tenants', icon: '👥' },
+    { key: 'agents', label: 'Agents', icon: '🧑‍💼' },
+    { key: 'reset-requests', label: 'Password Resets', icon: '🔑' },
     { key: 'payments', label: 'Payments', icon: '💰' },
     { key: 'invoices', label: 'Invoices', icon: '📋' },
     { key: 'expenses', label: 'Expenses', icon: '🧾' },
     { key: 'messages', label: 'Messages', icon: '💬' },
     { key: 'water', label: 'Water Bills', icon: '💧' },
-    { key: 'qrcodes', label: 'QR Codes', icon: '📱' },
   ];
 
   if (loading)
@@ -769,7 +1234,7 @@ function AdminDashboard() {
   if (error)
     return (
       <div style={styles.centered}>
-        <p style={{ color: '#c0392b' }}>⚠ {error}</p>
+        <p style={{ color: 'var(--color-danger-strong)' }}>⚠ {error}</p>
       </div>
     );
 
@@ -779,7 +1244,7 @@ function AdminDashboard() {
   }
 
   async function sendOneMessage(phone) {
-    const res = await fetch('http://localhost:5000/api/messages/send', {
+    const res = await fetch('http://localhost:5001/api/messages/send', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
@@ -821,30 +1286,23 @@ function AdminDashboard() {
   }
   
 
-  async function handleSaveWaterBill(houseNumber, amount) {
+  async function handleSaveWaterBill(unit, amount) {
     if (!amount || parseInt(amount) < 1) {
       alert('please enter a valid amount');
       return;
     }
-    const unit = units.find((u) => u.unit_number === houseNumber);
-    if (!unit) {
-      alert('Unit not found.');
-      return;
-    }
-    const period = houseNumber === 7 ? nextPeriod7 : nextPeriod8;
+    const period = nextPeriods[unit.unit_id];
     if (!period) {
       alert('Billing period not loaded yet, try again.');
       return;
     }
-    const month = period.month;
-    const year = period.year;
 
     try {
-      const res = await fetch('http://localhost:5000/api/water-bills', {
+      const res = await fetch('http://localhost:5001/api/water-bills', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ unit_id: unit.unit_id, amount: parseInt(amount), month, year }),
+        body: JSON.stringify({ unit_id: unit.unit_id, amount: parseInt(amount), month: period.month, year: period.year }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -853,9 +1311,8 @@ function AdminDashboard() {
       }
       await loadUnits();
       await loadWaterBills();
-      if (houseNumber === 7) setNewWater7('');
-      if (houseNumber === 8) setNewWater8('');
-      alert(`House ${houseNumber} water bill updated to Ksh ${parseInt(amount).toLocaleString()}!`);
+      setNewWaterAmounts((prev) => ({ ...prev, [unit.unit_id]: '' }));
+      alert(`House ${unit.unit_number} water bill updated to Ksh ${parseInt(amount).toLocaleString()}!`);
     } catch (err) {
       alert('Could not reach the server.');
     }
@@ -866,10 +1323,10 @@ function AdminDashboard() {
       <div>
         <div style={styles.summaryRow}>
           {[
-            { value: totalUnits, label: 'Total Units', color: '#1a7a4a' },
-            { value: occupiedUnits, label: 'Occupied', color: '#1a7a4a' },
-            { value: availableUnits, label: 'Available', color: '#1a7a4a' },
-            { value: pendingCount, label: 'Pending', color: '#f57c00' },
+            { value: totalUnits, label: 'Total Units', color: 'var(--color-brand)' },
+            { value: occupiedUnits, label: 'Occupied', color: 'var(--color-brand)' },
+            { value: availableUnits, label: 'Available', color: 'var(--color-brand)' },
+            { value: pendingCount, label: 'Pending', color: 'var(--color-warning)' },
           ].map((card) => (
             <div key={card.label} style={styles.summaryCard}>
               <p style={{ ...styles.summaryValue, color: card.color }}>
@@ -888,7 +1345,7 @@ function AdminDashboard() {
             <button onClick={() => setActivePage('water')} style={styles.actionBtn}>💧 Water Bills</button>
             <button
               onClick={() => setActivePage('dashboard')}
-              style={{ ...styles.actionBtn, backgroundColor: '#fff8e1', color: '#f57c00', border: '1px solid #ffe082' }}
+              style={{ ...styles.actionBtn, backgroundColor: 'var(--color-warning-soft)', color: 'var(--color-warning)', border: '1px solid var(--color-warning-strong)' }}
             >
               ✅ Approvals {pendingCount > 0 && `(${pendingCount})`}
             </button>
@@ -926,7 +1383,7 @@ function AdminDashboard() {
                     <p style={styles.pendingDetails}>
                       Requested House {tenant.unit_id || '—'} · {tenant.phone}
                     </p>
-                    <p style={{ fontSize: '11px', color: '#888', margin: 0 }}>{tenant.created_at}</p>
+                    <p style={{ fontSize: '11px', color: 'var(--color-muted)', margin: 0 }}>{tenant.created_at}</p>
                   </div>
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <button onClick={() => handleApprove(tenant.user_id, tenant.unit_id)} style={styles.approveBtn}>Approve</button>
@@ -1101,28 +1558,6 @@ function AdminDashboard() {
                     />
                   </div>
                   <div style={styles.editField}>
-                    <p style={styles.editLabel}>Payment Type</p>
-                    <select
-                      value={newUnitPaymentType}
-                      onChange={(e) => setNewUnitPaymentType(e.target.value)}
-                      style={styles.statusSelect}
-                    >
-                      <option value="paybill">Paybill</option>
-                      <option value="phone">Phone</option>
-                    </select>
-                  </div>
-                  {newUnitPaymentType === 'phone' && (
-                    <div style={styles.editField}>
-                      <p style={styles.editLabel}>Phone Number</p>
-                      <input
-                        value={newUnitPhone}
-                        onChange={(e) => setNewUnitPhone(e.target.value)}
-                        placeholder="e.g. 0722223432"
-                        style={styles.editInput}
-                      />
-                    </div>
-                  )}
-                  <div style={styles.editField}>
                     <p style={styles.editLabel}>Has Water Bill?</p>
                     <select
                       value={newUnitHasWater ? 'yes' : 'no'}
@@ -1133,8 +1568,95 @@ function AdminDashboard() {
                       <option value="yes">Yes</option>
                     </select>
                   </div>
+                  {newUnitHasWater && (
+                    <div style={styles.editField}>
+                      <p style={styles.editLabel}>Water Bill (Ksh)</p>
+                      <input
+                        type="number"
+                        value={newUnitWaterAmount}
+                        onChange={(e) => setNewUnitWaterAmount(e.target.value)}
+                        placeholder="e.g. 1200"
+                        style={styles.editInput}
+                      />
+                    </div>
+                  )}
+                  <div style={styles.editField}>
+                    <p style={styles.editLabel}>Paybill No</p>
+                    <input
+                      value={newUnitPaybill}
+                      onChange={(e) => setNewUnitPaybill(e.target.value)}
+                      placeholder="Leave blank to use the property's default"
+                      style={styles.editInput}
+                    />
+                  </div>
+                  <div style={styles.editField}>
+                    <p style={styles.editLabel}>Account No</p>
+                    <input
+                      value={newUnitAccount}
+                      onChange={(e) => setNewUnitAccount(e.target.value)}
+                      placeholder="Leave blank to use the property's default"
+                      style={styles.editInput}
+                    />
+                  </div>
                   <button onClick={handleAddUnit} style={styles.saveBtn}>+ Add Unit</button>
                 </div>
+              </div>
+
+              <div style={styles.card}>
+                <p style={styles.cardTitle}>Bulk Assign Paybill / Account</p>
+                <p style={{ fontSize: '13px', color: 'var(--color-muted)', margin: '-12px 0 20px' }}>
+                  Set a paybill and/or account number on many units at once — pick "Select All" if
+                  every unit shares one paybill, or check off just the ones that should share a
+                  different one from the rest.
+                </p>
+                <div style={styles.editRow}>
+                  <div style={styles.editField}>
+                    <p style={styles.editLabel}>Paybill No</p>
+                    <input value={bulkPaybill} onChange={(e) => setBulkPaybill(e.target.value)} placeholder="e.g. 4567" style={styles.editInput} />
+                  </div>
+                  <div style={styles.editField}>
+                    <p style={styles.editLabel}>Account No</p>
+                    <input value={bulkAccount} onChange={(e) => setBulkAccount(e.target.value)} placeholder="e.g. 9876543210" style={styles.editInput} />
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '16px 0 10px' }}>
+                  <input
+                    type="checkbox"
+                    id="bulk-select-all"
+                    checked={units.length > 0 && bulkSelectedUnits.length === units.length}
+                    onChange={toggleBulkSelectAll}
+                  />
+                  <label htmlFor="bulk-select-all" style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-ink)', cursor: 'pointer' }}>
+                    Select All ({bulkSelectedUnits.length} of {units.length} selected)
+                  </label>
+                </div>
+
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '16px' }}>
+                  {units.map((u) => (
+                    <label
+                      key={u.unit_id}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: '6px',
+                        padding: '8px 12px', borderRadius: 'var(--radius-sm)',
+                        border: '1.5px solid var(--color-border)',
+                        backgroundColor: bulkSelectedUnits.includes(u.unit_id) ? 'var(--color-primary-light)' : 'var(--color-surface)',
+                        fontSize: '13px', cursor: 'pointer',
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={bulkSelectedUnits.includes(u.unit_id)}
+                        onChange={() => toggleBulkUnit(u.unit_id)}
+                      />
+                      House {u.unit_number}
+                    </label>
+                  ))}
+                </div>
+
+                <button onClick={handleBulkAssignPaybill} disabled={bulkApplying} style={styles.saveBtn}>
+                  {bulkApplying ? 'Applying...' : `Apply to ${bulkSelectedUnits.length} Unit(s)`}
+                </button>
               </div>
 
               <div style={styles.card}>
@@ -1168,15 +1690,37 @@ function AdminDashboard() {
                                 />
                               </div>
                             ) : null}
+                            <div style={styles.editField}>
+                              <p style={styles.editLabel}>Paybill No</p>
+                              <input
+                                value={editingUnitPaybill}
+                                onChange={(e) => setEditingUnitPaybill(e.target.value)}
+                                placeholder="Property default"
+                                style={styles.editInput}
+                              />
+                            </div>
+                            <div style={styles.editField}>
+                              <p style={styles.editLabel}>Account No</p>
+                              <input
+                                value={editingUnitAccount}
+                                onChange={(e) => setEditingUnitAccount(e.target.value)}
+                                placeholder="Property default"
+                                style={styles.editInput}
+                              />
+                            </div>
                           </div>
                         ) : (
                           <div>
                             <p style={styles.unitRent}>
-                              Ksh {unit.rent_amount.toLocaleString()} ·{' '}
-                              {unit.payment_type === 'paybill' ? 'Paybill' : 'Phone'}
+                              Ksh {unit.rent_amount.toLocaleString()}
                             </p>
                             {unit.has_water_bill ? (
                               <p style={styles.unitWater}>💧 Water: Ksh {unit.water_bill.toLocaleString()}</p>
+                            ) : null}
+                            {(unit.paybill_no || unit.account_no) ? (
+                              <p style={styles.unitWater}>
+                                💳 Paybill {unit.paybill_no || '—'} / Acc {unit.account_no || '—'}
+                              </p>
                             ) : null}
                           </div>
                         )}
@@ -1230,7 +1774,8 @@ function AdminDashboard() {
                 {tenants
                   .filter((t) => t.status === 'active')
                   .map((tenant) => (
-                    <div key={tenant.user_id} style={styles.tenantRow}>
+                    <React.Fragment key={tenant.user_id}>
+                    <div style={styles.tenantRow}>
                       <div style={styles.unitBadge}>H{tenant.unit_id}</div>
                       <div style={styles.tenantInfo}>
                         {editingTenant === tenant.user_id ? (
@@ -1252,7 +1797,9 @@ function AdminDashboard() {
                             <p style={styles.tenantDetails}>
                               Agreement: {tenant.agreement_signed ? '✓ Signed' : '— Not signed'}
                               {' · '}
-                              Deposit: {tenant.deposit_paid ? `✓ Ksh ${tenant.deposit_amount_paid?.toLocaleString()}` : '— Pending'}
+                              Deposit: {tenant.deposit_paid
+                                ? `✓ Ksh ${tenant.deposit_amount_paid?.toLocaleString()} paid`
+                                : `— Pending (Ksh ${(tenant.unit_deposit_amount ?? 0).toLocaleString()} expected)`}
                             </p>
                           </div>
                         )}
@@ -1266,16 +1813,140 @@ function AdminDashboard() {
                         ) : (
                           <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                             <button onClick={() => handleEditTenant(tenant)} style={styles.editBtn}>Edit</button>
-                            {!tenant.deposit_paid && (
+                            {!tenant.deposit_paid ? (
                               <button onClick={() => handleMarkDeposit(tenant)} style={styles.saveBtn}>
                                 Mark Deposit Paid
                               </button>
+                            ) : (
+                              <button onClick={() => handleDownloadDepositReceipt(tenant.user_id)} style={styles.editBtn}>
+                                📄 Deposit Receipt
+                              </button>
                             )}
-                            <button onClick={() => handleVacate(tenant.user_id)} style={styles.vacateBtn}>Vacate</button>
+                            {tenant.id_photo_path ? (
+                              <>
+                                <a
+                                  href={`http://localhost:5001${tenant.id_photo_path}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  style={styles.editBtn}
+                                >
+                                  🪪 View ID
+                                </a>
+                                {tenant.id_photo_verified ? (
+                                  <span style={{ ...styles.editBtn, cursor: 'default', backgroundColor: 'var(--color-primary-light)' }}>
+                                    ✓ Contract Approved
+                                  </span>
+                                ) : (
+                                  <button onClick={() => handleVerifyId(tenant)} style={styles.saveBtn}>
+                                    Approve Contract
+                                  </button>
+                                )}
+                              </>
+                            ) : tenant.id_photo_requested ? (
+                              <span style={{ ...styles.editBtn, cursor: 'default' }}>⏳ ID Requested</span>
+                            ) : (
+                              <button onClick={() => handleRequestId(tenant)} style={styles.editBtn}>
+                                🪪 Request ID
+                              </button>
+                            )}
+                            {tenant.agreement_signed && (
+                              <button onClick={() => handleDownloadAgreement(tenant)} style={styles.editBtn}>
+                                📄 Agreement
+                              </button>
+                            )}
+                            <button onClick={() => handleOpenVacate(tenant)} style={styles.vacateBtn}>Vacate</button>
                           </div>
                         )}
                       </div>
                     </div>
+
+                    {vacatingTenant?.user_id === tenant.user_id && (
+                      <div style={styles.vacatePanel}>
+                        {!vacatePreview ? (
+                          <p style={styles.placeholderText}>Loading deposit settlement...</p>
+                        ) : (
+                          <>
+                            <p style={styles.cardTitle}>Vacate {vacatePreview.tenant_name}</p>
+
+                            <div style={styles.vacateSummaryRow}>
+                              <div>
+                                <p style={styles.filterLabel}>Deposit Paid</p>
+                                <p style={styles.vacateSummaryValue}>Ksh {vacatePreview.deposit_paid.toLocaleString()}</p>
+                              </div>
+                              <div>
+                                <p style={styles.filterLabel}>Outstanding Rent</p>
+                                <p style={{ ...styles.vacateSummaryValue, color: 'var(--color-danger-strong)' }}>
+                                  Ksh {vacatePreview.outstanding_owed.toLocaleString()}
+                                </p>
+                              </div>
+                              <div>
+                                <p style={styles.filterLabel}>Deductions</p>
+                                <p style={{ ...styles.vacateSummaryValue, color: 'var(--color-danger-strong)' }}>
+                                  Ksh {getTotalDeductions().toLocaleString()}
+                                </p>
+                              </div>
+                              <div>
+                                <p style={styles.filterLabel}>{getLiveRefund() >= 0 ? 'Refund Due' : 'Tenant Owes'}</p>
+                                <p style={{ ...styles.vacateSummaryValue, color: getLiveRefund() >= 0 ? 'var(--color-brand)' : 'var(--color-danger-strong)' }}>
+                                  Ksh {Math.abs(getLiveRefund()).toLocaleString()}
+                                </p>
+                              </div>
+                            </div>
+
+                            {vacatePreview.outstanding_invoices.length > 0 && (
+                              <p style={styles.vacateNote}>
+                                These invoices will be voided: {vacatePreview.outstanding_invoices.map((inv) => `${inv.invoice_no} (Ksh ${inv.balance_due.toLocaleString()})`).join(', ')}
+                              </p>
+                            )}
+
+                            <p style={{ ...styles.filterLabel, marginTop: '16px' }}>Deposit Deductions (optional)</p>
+                            {deductionRows.map((row, i) => (
+                              <div key={i} style={styles.deductionRow}>
+                                <input
+                                  type="text"
+                                  placeholder="Reason e.g. Broken window"
+                                  value={row.reason}
+                                  onChange={(e) => handleDeductionChange(i, 'reason', e.target.value)}
+                                  style={{ ...styles.filterSelect, flex: 1 }}
+                                />
+                                <input
+                                  type="number"
+                                  placeholder="Amount"
+                                  value={row.amount}
+                                  onChange={(e) => handleDeductionChange(i, 'amount', e.target.value)}
+                                  style={{ ...styles.filterSelect, width: '120px' }}
+                                />
+                                <button onClick={() => handleRemoveDeductionRow(i)} style={styles.deleteBtn}>Remove</button>
+                              </div>
+                            ))}
+                            <button onClick={handleAddDeductionRow} style={{ ...styles.editBtn, marginTop: '8px' }}>
+                              + Add Row
+                            </button>
+
+                            <p style={{ ...styles.filterLabel, marginTop: '16px' }}>Evidence Photos (up to 3)</p>
+                            <div style={styles.photoRow}>
+                              {[0, 1, 2].map((i) => (
+                                <input
+                                  key={i}
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={(e) => handlePhotoChange(i, e.target.files[0] || null)}
+                                  style={styles.photoInput}
+                                />
+                              ))}
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+                              <button onClick={handleConfirmVacate} disabled={vacateSubmitting} style={styles.vacateBtn}>
+                                {vacateSubmitting ? 'Vacating...' : 'Confirm Vacate'}
+                              </button>
+                              <button onClick={handleCancelVacate} style={styles.cancelBtn}>Cancel</button>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    )}
+                    </React.Fragment>
                   ))}
               </div>
 
@@ -1287,13 +1958,138 @@ function AdminDashboard() {
                   <p style={styles.placeholderText}>No vacated tenants yet.</p>
                 ) : (
                   tenants.filter((t) => t.status === 'vacated').map((tenant) => (
-                    <div key={tenant.user_id} style={styles.tenantRow}>
-                      <div style={{ ...styles.unitBadge, backgroundColor: '#f4f6f8', color: '#888' }}>—</div>
+                    <React.Fragment key={tenant.user_id}>
+                    <div style={styles.tenantRow}>
+                      <div style={{ ...styles.unitBadge, backgroundColor: 'var(--color-bg-alt)', color: 'var(--color-muted)' }}>—</div>
                       <div style={styles.tenantInfo}>
-                        <p style={{ ...styles.tenantName, color: '#888' }}>{tenant.full_name}</p>
+                        <p style={{ ...styles.tenantName, color: 'var(--color-muted)' }}>{tenant.full_name}</p>
                         <p style={styles.tenantDetails}>@{tenant.username} · {tenant.phone}</p>
                       </div>
-                      <span style={{ ...styles.statusBadge, backgroundColor: '#f4f6f8', color: '#888' }}>VACATED</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                        <span style={{ ...styles.statusBadge, backgroundColor: 'var(--color-bg-alt)', color: 'var(--color-muted)' }}>VACATED</span>
+                        <button onClick={() => handleViewDeductions(tenant)} style={styles.editBtn}>
+                          {viewingDeductionsFor === tenant.user_id ? 'Hide Deductions' : 'View Deductions'}
+                        </button>
+                        <button onClick={() => handleDownloadVacateReceipt(tenant.user_id)} style={styles.editBtn}>
+                          📄 Vacate Receipt
+                        </button>
+                        <button onClick={() => handleUnvacate(tenant)} style={styles.saveBtn}>
+                          Undo Vacate
+                        </button>
+                      </div>
+                    </div>
+
+                    {viewingDeductionsFor === tenant.user_id && (
+                      <div style={styles.vacatePanel}>
+                        {!deductionsData ? (
+                          <p style={styles.placeholderText}>Loading...</p>
+                        ) : deductionsData.deductions.length === 0 && deductionsData.photos.length === 0 ? (
+                          <p style={styles.placeholderText}>No deposit deductions or evidence were recorded for this tenant.</p>
+                        ) : (
+                          <>
+                            {deductionsData.deductions.map((d) => (
+                              <div key={d.deduction_id} style={styles.deductionRow}>
+                                <p style={{ flex: 1, fontSize: '13px', color: 'var(--color-ink-soft)', margin: 0 }}>{d.reason}</p>
+                                <p style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-danger-strong)', margin: 0 }}>
+                                  Ksh {d.amount.toLocaleString()}
+                                </p>
+                              </div>
+                            ))}
+                            {deductionsData.photos.length > 0 && (
+                              <div style={styles.photoRow}>
+                                {deductionsData.photos.map((p) => (
+                                  <a key={p.photo_id} href={`http://localhost:5001${p.file_path}`} target="_blank" rel="noreferrer">
+                                    <img src={`http://localhost:5001${p.file_path}`} alt="Evidence" style={styles.evidenceThumb} />
+                                  </a>
+                                ))}
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    )}
+                    </React.Fragment>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* AGENTS */}
+          {activePage === 'agents' && (
+            <div>
+              <div style={styles.card}>
+                <p style={styles.cardTitle}>Pending Agents ({pendingAgents.length})</p>
+                {pendingAgents.length === 0 ? (
+                  <p style={styles.placeholderText}>No pending agent applications.</p>
+                ) : (
+                  pendingAgents.map((agent) => (
+                    <div key={agent.user_id} style={styles.tenantRow}>
+                      <div style={styles.unitBadge}>🧑‍💼</div>
+                      <div style={styles.tenantInfo}>
+                        <p style={styles.tenantName}>{agent.full_name}</p>
+                        <p style={styles.tenantDetails}>@{agent.username} · {agent.phone}</p>
+                        <p style={styles.tenantPenalty}>
+                          Requested property: {agent.property_name || '—'}
+                        </p>
+                      </div>
+                      <div style={styles.tenantActions}>
+                        <button onClick={() => handleApproveAgent(agent.user_id)} style={styles.approveBtn}>Approve</button>
+                        <button onClick={() => handleRejectAgent(agent.user_id)} style={styles.rejectBtn}>Reject</button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              <div style={styles.card}>
+                <p style={styles.cardTitle}>Active Agents ({agents.length})</p>
+                {agents.length === 0 ? (
+                  <p style={styles.placeholderText}>No agents yet.</p>
+                ) : (
+                  agents.map((agent) => (
+                    <div key={agent.user_id} style={styles.tenantRow}>
+                      <div style={styles.unitBadge}>🧑‍💼</div>
+                      <div style={styles.tenantInfo}>
+                        <p style={styles.tenantName}>{agent.full_name}</p>
+                        <p style={styles.tenantDetails}>@{agent.username} · {agent.phone}</p>
+                        <p style={styles.tenantPenalty}>
+                          Property: {agent.property_name || '—'}
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* PASSWORD RESET REQUESTS */}
+          {activePage === 'reset-requests' && (
+            <div>
+              <div style={styles.card}>
+                <p style={styles.cardTitle}>Password Reset Requests ({passwordResetRequests.length})</p>
+                {passwordResetRequests.length === 0 ? (
+                  <p style={styles.placeholderText}>No pending password reset requests.</p>
+                ) : (
+                  passwordResetRequests.map((req) => (
+                    <div key={req.user_id} style={styles.tenantRow}>
+                      <div style={styles.unitBadge}>🔑</div>
+                      <div style={styles.tenantInfo}>
+                        <p style={styles.tenantName}>{req.full_name}</p>
+                        <p style={styles.tenantDetails}>@{req.username} · {req.phone} · {req.role}</p>
+                        <p style={{ fontSize: '11px', color: 'var(--color-muted)', margin: 0 }}>
+                          Requested {req.password_reset_requested_at}
+                        </p>
+                      </div>
+                      <div style={styles.tenantActions}>
+                        <button onClick={() => handleApprovePasswordReset(req.user_id)} style={styles.approveBtn}>
+                          Reset Password
+                        </button>
+                        <button onClick={() => handleDismissPasswordReset(req.user_id)} style={styles.rejectBtn}>
+                          Dismiss
+                        </button>
+                      </div>
                     </div>
                   ))
                 )}
@@ -1306,11 +2102,11 @@ function AdminDashboard() {
             <div>
               <div style={styles.summaryRow}>
                 <div style={styles.summaryCard}>
-                  <p style={{ ...styles.summaryValue, color: '#1a7a4a' }}>Ksh {totalCollected.toLocaleString()}</p>
+                  <p style={{ ...styles.summaryValue, color: 'var(--color-brand)' }}>Ksh {totalCollected.toLocaleString()}</p>
                   <p style={styles.summaryLabel}>Total Collected</p>
                 </div>
                 <div style={styles.summaryCard}>
-                  <p style={{ ...styles.summaryValue, color: '#c0392b' }}>Ksh {totalOutstanding.toLocaleString()}</p>
+                  <p style={{ ...styles.summaryValue, color: 'var(--color-danger-strong)' }}>Ksh {totalOutstanding.toLocaleString()}</p>
                   <p style={styles.summaryLabel}>Outstanding</p>
                 </div>
               </div>
@@ -1343,7 +2139,7 @@ function AdminDashboard() {
 
               <div style={styles.card}>
                 <p style={styles.cardTitle}>Record Manual Payment</p>
-                <p style={{ fontSize: '13px', color: '#888', margin: '-12px 0 20px' }}>
+                <p style={{ fontSize: '13px', color: 'var(--color-muted)', margin: '-12px 0 20px' }}>
                   For cash, bank transfer, phone-based M-Pesa (Houses 7–9), or corrections that
                   won't come through the paybill automatically.
                 </p>
@@ -1358,7 +2154,7 @@ function AdminDashboard() {
                       <option value="">Select a unit...</option>
                       {units.map((u) => (
                         <option key={u.unit_id} value={u.unit_id}>
-                          House {u.unit_number} ({u.payment_type})
+                          House {u.unit_number}{u.has_water_bill ? ' 💧' : ''}
                         </option>
                       ))}
                     </select>
@@ -1421,7 +2217,7 @@ function AdminDashboard() {
                   </div>
                 </div>
                 {manualError !== '' && (
-                  <p style={{ color: '#c0392b', fontSize: '13px', margin: '12px 0 0' }}>{manualError}</p>
+                  <p style={{ color: 'var(--color-danger-strong)', fontSize: '13px', margin: '12px 0 0' }}>{manualError}</p>
                 )}
               </div>
 
@@ -1444,8 +2240,8 @@ function AdminDashboard() {
                         <span
                           style={{
                             ...styles.paymentStatusBadge,
-                            backgroundColor: payment.status === 'paid' ? '#e8f5ee' : '#fdecea',
-                            color: payment.status === 'paid' ? '#1a7a4a' : '#c0392b',
+                            backgroundColor: payment.status === 'paid' ? 'var(--color-primary-light)' : 'var(--color-danger-light)',
+                            color: payment.status === 'paid' ? 'var(--color-brand)' : 'var(--color-danger-strong)',
                           }}
                         >
                           {payment.status.toUpperCase()}
@@ -1495,8 +2291,19 @@ function AdminDashboard() {
                   </div>
                 </div>
                 {invoiceError !== '' && (
-                  <p style={{ color: '#c0392b', fontSize: '13px', margin: '12px 0 0' }}>{invoiceError}</p>
+                  <p style={{ color: 'var(--color-danger-strong)', fontSize: '13px', margin: '12px 0 0' }}>{invoiceError}</p>
                 )}
+              </div>
+
+              <div style={styles.card}>
+                <p style={styles.cardTitle}>Monthly Auto-Generation</p>
+                <p style={{ fontSize: '13px', color: 'var(--color-muted)', margin: '0 0 16px' }}>
+                  Every active tenant automatically gets this month's invoice generated once a day if they don't already
+                  have one. Use this button to run that check right now instead of waiting for the next scheduled pass.
+                </p>
+                <button onClick={handleGenerateMonthlyInvoices} disabled={generatingInvoice} style={styles.addExpenseBtn}>
+                  {generatingInvoice ? 'Running...' : '⚡ Run Monthly Generation Now'}
+                </button>
               </div>
 
               <div style={styles.card}>
@@ -1504,36 +2311,53 @@ function AdminDashboard() {
                 {invoices.length === 0 ? (
                   <p style={styles.placeholderText}>No invoices generated yet.</p>
                 ) : (
-                  invoices.map((invoice) => (
-                    <div key={invoice.invoice_id} style={styles.paymentRowFull}>
-                      <div style={styles.unitBadge}>H{invoice.unit_number}</div>
-                      <div style={styles.paymentInfo}>
-                        <p style={styles.paymentTenant}>{invoice.tenant_name}</p>
-                        <p style={styles.paymentDate}>
-                          {invoice.month} · Due {invoice.due_date}
-                          {invoice.water_amount > 0 ? ` · Water Ksh ${invoice.water_amount.toLocaleString()}` : ''}
-                          {invoice.penalty > 0 ? ` · Penalty Ksh ${invoice.penalty.toLocaleString()}` : ''}
-                        </p>
+                  invoices.map((invoice) => {
+                    const statusColors = {
+                      paid: { bg: 'var(--color-primary-light)', color: 'var(--color-brand)' },
+                      partial: { bg: 'var(--color-warning-soft)', color: 'var(--color-warning)' },
+                      unpaid: { bg: 'var(--color-danger-light)', color: 'var(--color-danger-strong)' },
+                    };
+                    const statusStyle = statusColors[invoice.status] || statusColors.unpaid;
+                    return (
+                      <div key={invoice.invoice_id} style={styles.paymentRowFull}>
+                        <div style={styles.unitBadge}>H{invoice.unit_number}</div>
+                        <div style={styles.paymentInfo}>
+                          <p style={styles.paymentTenant}>{invoice.invoice_no} · {invoice.tenant_name}</p>
+                          <p style={styles.paymentDate}>
+                            {invoice.month} · Due {invoice.due_date}
+                            {invoice.water_amount > 0 ? ` · Water Ksh ${invoice.water_amount.toLocaleString()}` : ''}
+                            {invoice.penalty > 0 ? ` · Penalty Ksh ${invoice.penalty.toLocaleString()}` : ''}
+                            {invoice.status === 'partial' ? ` · Paid Ksh ${invoice.amount_paid.toLocaleString()} of ${invoice.total_amount.toLocaleString()}` : ''}
+                          </p>
+                        </div>
+                        <div style={styles.paymentRight}>
+                          <p style={styles.paymentAmount}>
+                            {invoice.status === 'partial'
+                              ? `Ksh ${invoice.balance_due.toLocaleString()} due`
+                              : `Ksh ${invoice.total_amount.toLocaleString()}`}
+                          </p>
+                          <span
+                            style={{
+                              ...styles.paymentStatusBadge,
+                              backgroundColor: statusStyle.bg,
+                              color: statusStyle.color,
+                            }}
+                          >
+                            {invoice.status.toUpperCase()}
+                          </span>
+                        </div>
+                        {invoice.amount_paid > 0 ? (
+                          <button onClick={() => handleDownloadInvoiceReceipt(invoice.invoice_id)} style={styles.editBtn}>
+                            📄 Receipt
+                          </button>
+                        ) : (
+                          <button onClick={() => handleDeleteInvoice(invoice.invoice_id)} style={styles.deleteBtn}>
+                            Delete
+                          </button>
+                        )}
                       </div>
-                      <div style={styles.paymentRight}>
-                        <p style={styles.paymentAmount}>Ksh {invoice.total_amount.toLocaleString()}</p>
-                        <span
-                          style={{
-                            ...styles.paymentStatusBadge,
-                            backgroundColor: invoice.status === 'paid' ? '#e8f5ee' : '#fdecea',
-                            color: invoice.status === 'paid' ? '#1a7a4a' : '#c0392b',
-                          }}
-                        >
-                          {invoice.status.toUpperCase()}
-                        </span>
-                      </div>
-                      {invoice.status !== 'paid' && (
-                        <button onClick={() => handleDeleteInvoice(invoice.invoice_id)} style={styles.deleteBtn}>
-                          Delete
-                        </button>
-                      )}
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             </div>
@@ -1544,7 +2368,7 @@ function AdminDashboard() {
             <div>
               <div style={styles.card}>
                 <p style={styles.cardTitle}>Total Expenses This Month</p>
-                <p style={{ fontSize: '32px', fontWeight: 700, color: '#c0392b', margin: '0 0 20px' }}>
+                <p style={{ fontSize: '32px', fontWeight: 700, color: 'var(--color-danger-strong)', margin: '0 0 20px' }}>
                   Ksh {totalExpenses.toLocaleString()}
                 </p>
                 <div style={styles.categoryRow}>
@@ -1631,7 +2455,7 @@ function AdminDashboard() {
           {activePage === 'messages' && (
             <div>
               <div style={styles.card}>
-                <p style={styles.cardTitle}>Send SMS Message</p>
+                <p style={styles.cardTitle}>Send WhatsApp Message</p>
                 <div style={styles.filterGroup}>
                   <p style={styles.filterLabel}>Send To</p>
                   <select value={recipient} onChange={(e) => setRecipient(e.target.value)} style={styles.filterSelect}>
@@ -1657,9 +2481,9 @@ function AdminDashboard() {
                       onClick={() => handleTemplateSelect(t.key)}
                       style={{
                         ...styles.templateBtn,
-                        backgroundColor: messageTemplate === t.key ? '#1a7a4a' : '#f4f6f8',
-                        color: messageTemplate === t.key ? 'white' : '#555',
-                        border: messageTemplate === t.key ? 'none' : '1px solid #ddd',
+                        backgroundColor: messageTemplate === t.key ? 'var(--color-brand)' : 'var(--color-bg-alt)',
+                        color: messageTemplate === t.key ? 'var(--color-text-on-brand)' : 'var(--color-ink-soft)',
+                        border: messageTemplate === t.key ? 'none' : '1px solid var(--color-border-soft)',
                       }}
                     >
                       {t.label}
@@ -1678,14 +2502,14 @@ function AdminDashboard() {
                   />
                   <p style={{
                     fontSize: '12px', margin: '4px 0 0', textAlign: 'right',
-                    color: messageText.length > 160 ? '#c0392b' : '#888',
-                    fontWeight: messageText.length > 160 ? 700 : 400,
+                    color: messageText.length > 4096 ? 'var(--color-danger-strong)' : 'var(--color-muted)',
+                    fontWeight: messageText.length > 4096 ? 700 : 400,
                   }}>
-                    {messageText.length}/160{messageText.length > 160 && ' — Over SMS limit!'}
+                    {messageText.length}/4096{messageText.length > 4096 && ' — Over WhatsApp limit!'}
                   </p>
                 </div>
 
-                <button onClick={handleSendMessage} style={styles.sendBtn}>Send SMS</button>
+                <button onClick={handleSendMessage} style={styles.sendBtn}>Send WhatsApp Message</button>
               </div>
 
               <div style={styles.card}>
@@ -1714,120 +2538,108 @@ function AdminDashboard() {
           {activePage === 'water' && (
             <div>
               <div style={styles.card}>
-                <p style={styles.cardTitle}>Set water bills -July 2026</p>
-                <p style={{ fontSize: '12px', color: '#945', margin: '0 0 20px' }}>
-                  Set the water Bill for House 7 and House 8 before tenants pay this month
-                </p>
-
-                <div style={styles.waterCardsRow}>
-                  {(() => {
-                    const unit7 = units.find(u => u.unit_number === 7);
-                    const tenant7 = tenants.find(t => t.unit_id === 7 && t.status === 'active');
-                    return (
-                      <div style={styles.waterCard}>
-                        <div style={styles.waterCardHeader}>
-                          <div style={styles.unitBadge}>H7</div>
-                          <div>
-                            <p style={styles.waterTenantName}>{tenant7?.full_name || 'no tenant'}</p>
-                            <p style={styles.waterCurrentBill}>
-                              Current: Ksh {(unit7?.water_bill || 0).toLocaleString()}
-                            </p>
-                            <p style={{ fontSize: '12px', color: '#f57c00', margin: '4px 0 0', fontWeight: 600 }}>
-                              Billing for: {nextPeriod7 ? `${nextPeriod7.month} ${nextPeriod7.year}` : '...'}
-                            </p>
+                <p style={styles.cardTitle}>Set Water Bills</p>
+                {waterUnits.length === 0 ? (
+                  <p style={styles.placeholderText}>
+                    No units have water billing enabled yet. Turn it on for a unit from the Units tab.
+                  </p>
+                ) : (
+                  <>
+                    <p style={{ fontSize: '12px', color: 'var(--color-ink-soft)', margin: '0 0 20px' }}>
+                      Set the water bill for each unit below before tenants pay this month.
+                    </p>
+                    <div style={styles.waterCardsRow}>
+                      {waterUnits.map((unit) => {
+                        const occupant = tenants.find((t) => t.unit_id === unit.unit_id && t.status === 'active');
+                        const period = nextPeriods[unit.unit_id];
+                        return (
+                          <div key={unit.unit_id} style={styles.waterCard}>
+                            <div style={styles.waterCardHeader}>
+                              <div style={styles.unitBadge}>H{unit.unit_number}</div>
+                              <div>
+                                <p style={styles.waterTenantName}>{occupant?.full_name || 'No tenant'}</p>
+                                <p style={styles.waterCurrentBill}>
+                                  Current: Ksh {(unit.water_bill || 0).toLocaleString()}
+                                </p>
+                                <p style={{ fontSize: '12px', color: 'var(--color-warning)', margin: '4px 0 0', fontWeight: 600 }}>
+                                  Billing for: {period ? `${period.month} ${period.year}` : '...'}
+                                </p>
+                              </div>
+                            </div>
+                            <div style={styles.waterInputRow}>
+                              <input
+                                type='number'
+                                value={newWaterAmounts[unit.unit_id] || ''}
+                                onChange={(e) => setNewWaterAmounts((prev) => ({ ...prev, [unit.unit_id]: e.target.value }))}
+                                placeholder='newAmount'
+                                style={styles.waterInput}
+                                min='2'
+                              />
+                              <button onClick={() => handleSaveWaterBill(unit, newWaterAmounts[unit.unit_id])} style={styles.waterSaveBtn}>Save</button>
+                            </div>
                           </div>
-                        </div>
-                        <div style={styles.waterInputRow}>
-                          <input
-                            type='number'
-                            value={newWater7}
-                            onChange={(e) => setNewWater7(e.target.value)}
-                            placeholder='newAmount'
-                            style={styles.waterInput}
-                            min='2'
-                          />
-                          <button onClick={() => handleSaveWaterBill(7, newWater7)} style={styles.waterSaveBtn}>Save</button>
-                        </div>
-                      </div>
-                    );
-                  })()}
-                  {(() => {
-                    const unit8 = units.find(u => u.unit_number === 8);
-                    const tenant8 = tenants.find(t => t.unit_id === 8 && t.status === 'active');
-                    return (
-                      <div style={styles.waterCard}>
-                        <div style={styles.waterCardHeader}>
-                          <div style={styles.unitBadge}>H8</div>
-                          <div>
-                            <p style={styles.waterTenantName}>{tenant8?.full_name || 'no tenant'}</p>
-                            <p style={styles.waterCurrentBill}>
-                              Current: Ksh {(unit8?.water_bill || 0).toLocaleString()}
-                            </p>
-                            <p style={{ fontSize: '12px', color: '#f57c00', margin: '4px 0 0', fontWeight: 600 }}>
-                              Billing for: {nextPeriod8 ? `${nextPeriod8.month} ${nextPeriod8.year}` : '...'}
-                            </p>
-                          </div>
-                        </div>
-                        <div style={styles.waterInputRow}>
-                          <input
-                            type='number'
-                            value={newWater8}
-                            onChange={(e) => setNewWater8(e.target.value)}
-                            placeholder='newAmount'
-                            style={styles.waterInput}
-                            min='2'
-                          />
-                          <button onClick={() => handleSaveWaterBill(8, newWater8)} style={styles.waterSaveBtn}>Save</button>
-                        </div>
-                      </div>
-                    );
-                  })()}
-
-                  <div style={styles.card}>
-                    <p style={styles.cardTitle}>Water Bill History</p>
-                    <div style={styles.waterTableHeader}>
-                      <p style={{ ...styles.waterTableCell, fontWeight: 700 }}>Month</p>
-                      <p style={{ ...styles.waterTableCell, fontWeight: 700, textAlign: 'right' }}>House 7</p>
-                      <p style={{ ...styles.waterTableCell, fontWeight: 700, textAlign: 'right' }}>House 8</p>
-                      <p style={{ ...styles.waterTableCell, fontWeight: 700, textAlign: 'right' }}>Total</p>
+                        );
+                      })}
                     </div>
-                    {waterHistory.map((record) => (
-                      <div key={record.id} style={styles.waterTableRow}>
-                        <p style={styles.waterTableCell}>{record.month}</p>
-                        <p style={{ ...styles.waterTableCell, textAlign: 'right', color: '#5635' }}>Ksh {record.house7.toLocaleString()}</p>
-                        <p style={{ ...styles.waterTableCell, textAlign: 'right', color: '#5635' }}>Ksh {record.house8.toLocaleString()}</p>
-                        <p style={{ ...styles.waterTableCell, textAlign: 'right', color: '#5635' }}>Ksh {(record.house7 + record.house8).toLocaleString()}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                  </>
+                )}
               </div>
+
+              {waterUnits.length > 0 && (
+                <div style={styles.card}>
+                  <p style={styles.cardTitle}>Water Bill History</p>
+                  {waterHistory.length === 0 ? (
+                    <p style={styles.placeholderText}>No water bill history yet.</p>
+                  ) : (
+                    <>
+                      <div style={styles.waterTableHeader}>
+                        <p style={{ ...styles.waterTableCell, fontWeight: 700 }}>Month</p>
+                        {waterUnits.map((unit) => (
+                          <p key={unit.unit_id} style={{ ...styles.waterTableCell, fontWeight: 700, textAlign: 'right' }}>
+                            House {unit.unit_number}
+                          </p>
+                        ))}
+                        <p style={{ ...styles.waterTableCell, fontWeight: 700, textAlign: 'right' }}>Total</p>
+                      </div>
+                      {waterHistory.map((record) => {
+                        const total = waterUnits.reduce((sum, u) => sum + (record.amounts[u.unit_id] || 0), 0);
+                        return (
+                          <div key={record.id} style={styles.waterTableRow}>
+                            <p style={styles.waterTableCell}>{record.month}</p>
+                            {waterUnits.map((unit) => (
+                              <p key={unit.unit_id} style={{ ...styles.waterTableCell, textAlign: 'right', color: 'var(--color-ink-soft)' }}>
+                                Ksh {(record.amounts[unit.unit_id] || 0).toLocaleString()}
+                              </p>
+                            ))}
+                            <p style={{ ...styles.waterTableCell, textAlign: 'right', color: 'var(--color-ink-soft)' }}>
+                              Ksh {total.toLocaleString()}
+                            </p>
+                          </div>
+                        );
+                      })}
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
-          {/* QR CODES */}
-          {activePage === 'qrcodes' && (
-            <div style={styles.card}>
-              <p style={styles.cardTitle}>QR Codes</p>
-              <p style={styles.placeholderText}>Coming in Day 16!</p>
-            </div>
-          )}
         </div>
       </div>
     </div>
   );
 }
 
-const GREEN = '#1a7a4a';
-const DARK_GREEN = '#145f38';
+const GREEN = 'var(--color-brand)';
+const DARK_GREEN = 'var(--color-brand-dark)';
 
 const styles = {
   page: {
     display: 'flex',
     flexDirection: 'column',
     minHeight: '100vh',
-    backgroundColor: '#f4f6f8',
-    fontFamily: 'Segoe UI, Arial, sans-serif',
+    backgroundColor: 'var(--color-bg-alt)',
+    fontFamily: 'var(--font-sans)',
   },
   centered: {
     display: 'flex',
@@ -1837,7 +2649,7 @@ const styles = {
   },
   header: {
     backgroundColor: GREEN,
-    color: 'white',
+    color: 'var(--color-text-on-brand)',
     padding: '24px 32px 0',
   },
   headerTop: {
@@ -1868,7 +2680,7 @@ const styles = {
     background: 'rgba(255,255,255,0.2)',
     border: '1px solid rgba(255,255,255,0.4)',
     borderRadius: '10px',
-    color: 'white',
+    color: 'var(--color-text-on-brand)',
     fontSize: '14px',
     cursor: 'pointer',
   },
@@ -1882,14 +2694,14 @@ const styles = {
     padding: '10px 16px',
     border: 'none',
     borderRadius: '8px 8px 0 0',
-    color: 'white',
+    color: 'var(--color-text-on-brand)',
     fontSize: '12px',
     cursor: 'pointer',
     whiteSpace: 'nowrap',
   },
   badge: {
-    backgroundColor: '#f57c00',
-    color: 'white',
+    backgroundColor: 'var(--color-warning)',
+    color: 'var(--color-text-on-brand)',
     borderRadius: '10px',
     padding: '2px 8px',
     fontSize: '11px',
@@ -1917,7 +2729,7 @@ const styles = {
     width: '100%',
     padding: '14px 24px',
     border: 'none',
-    color: 'white',
+    color: 'var(--color-text-on-brand)',
     fontSize: '14px',
     cursor: 'pointer',
     textAlign: 'left',
@@ -1948,11 +2760,11 @@ const styles = {
   },
   summaryCard: {
     flex: '1 1 140px',
-    background: 'white',
+    background: 'var(--color-surface)',
     borderRadius: '16px',
     padding: '24px 20px',
     textAlign: 'center',
-    boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+    boxShadow: 'var(--shadow-sm)',
   },
   summaryValue: {
     fontSize: '32px',
@@ -1961,22 +2773,22 @@ const styles = {
   },
   summaryLabel: {
     fontSize: '12px',
-    color: '#888',
+    color: 'var(--color-muted)',
     margin: 0,
     textTransform: 'uppercase',
     letterSpacing: '1px',
   },
   card: {
-    background: 'white',
+    background: 'var(--color-surface)',
     borderRadius: '16px',
     marginBottom: '24px',
     padding: '28px',
-    boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+    boxShadow: 'var(--shadow-sm)',
   },
   cardTitle: {
     fontSize: '13px',
     fontWeight: 700,
-    color: '#1a1a1a',
+    color: 'var(--color-ink)',
     margin: '0 0 20px',
     textTransform: 'uppercase',
     letterSpacing: '1px',
@@ -1988,9 +2800,9 @@ const styles = {
   },
   actionBtn: {
     padding: '12px 20px',
-    backgroundColor: '#e8f5ee',
+    backgroundColor: 'var(--color-primary-light)',
     color: GREEN,
-    border: '1px solid #b8dfc9',
+    border: '1px solid var(--color-success-soft)',
     borderRadius: '10px',
     fontSize: '14px',
     fontWeight: 600,
@@ -2001,24 +2813,24 @@ const styles = {
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: '14px 0',
-    borderBottom: '1px solid #f0f0f0',
+    borderBottom: '1px solid var(--color-border-soft)',
   },
   paymentTenant: {
     fontSize: '15px',
     fontWeight: 600,
     margin: '0 0 4px',
-    color: '#1a1a1a',
+    color: 'var(--color-ink)',
   },
   paymentDate: {
     fontSize: '13px',
-    color: '#888',
+    color: 'var(--color-muted)',
     margin: 0,
   },
   paymentAmount: {
     fontSize: '15px',
     fontWeight: 600,
     margin: '0 0 4px',
-    color: '#1a1a1a',
+    color: 'var(--color-ink)',
     textAlign: 'right',
   },
   paymentStatus: {
@@ -2032,24 +2844,24 @@ const styles = {
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: '14px 0',
-    borderBottom: '1px solid #f0f0f0',
+    borderBottom: '1px solid var(--color-border-soft)',
     gap: '12px',
   },
   pendingName: {
     fontSize: '15px',
     fontWeight: 600,
     margin: '0 0 4px',
-    color: '#1a1a1a',
+    color: 'var(--color-ink)',
   },
   pendingDetails: {
     fontSize: '13px',
-    color: '#555',
+    color: 'var(--color-ink-soft)',
     margin: '0 0 2px',
   },
   approveBtn: {
     padding: '10px 18px',
     backgroundColor: GREEN,
-    color: 'white',
+    color: 'var(--color-text-on-brand)',
     border: 'none',
     borderRadius: '10px',
     fontSize: '13px',
@@ -2058,8 +2870,8 @@ const styles = {
   },
   rejectBtn: {
     padding: '10px 18px',
-    backgroundColor: '#c0392b',
-    color: 'white',
+    backgroundColor: 'var(--color-danger-strong)',
+    color: 'var(--color-text-on-brand)',
     border: 'none',
     borderRadius: '10px',
     fontSize: '13px',
@@ -2071,7 +2883,7 @@ const styles = {
     alignItems: 'center',
     gap: '16px',
     padding: '16px 0',
-    borderBottom: '1px solid #f0f0f0',
+    borderBottom: '1px solid var(--color-border-soft)',
     flexWrap: 'wrap',
   },
   unitBadge: {
@@ -2079,7 +2891,7 @@ const styles = {
     height: '44px',
     minWidth: '44px',
     borderRadius: '12px',
-    backgroundColor: '#e8f5ee',
+    backgroundColor: 'var(--color-primary-light)',
     color: GREEN,
     display: 'flex',
     alignItems: 'center',
@@ -2095,16 +2907,16 @@ const styles = {
     fontSize: '15px',
     fontWeight: 600,
     margin: '0 0 4px',
-    color: '#1a1a1a',
+    color: 'var(--color-ink)',
   },
   unitRent: {
     fontSize: '13px',
-    color: '#888',
+    color: 'var(--color-muted)',
     margin: 0,
   },
   unitWater: {
     fontSize: '13px',
-    color: '#2980b9',
+    color: 'var(--color-info-strong)',
     margin: '4px 0 0',
   },
   unitActions: {
@@ -2121,10 +2933,11 @@ const styles = {
   },
   statusSelect: {
     padding: '8px 12px',
-    border: '1px solid #ddd',
+    border: '1px solid var(--color-border-soft)',
     borderRadius: '8px',
     fontSize: '13px',
-    backgroundColor: 'white',
+    backgroundColor: 'var(--color-surface)',
+    color: 'var(--color-ink)',
     cursor: 'pointer',
   },
   editRow: {
@@ -2140,22 +2953,24 @@ const styles = {
   },
   editLabel: {
     fontSize: '12px',
-    color: '#888',
+    color: 'var(--color-muted)',
     margin: 0,
     fontWeight: 500,
   },
   editInput: {
     width: '120px',
     padding: '8px 12px',
-    border: '1.5px solid #1a7a4a',
+    border: '1.5px solid var(--color-brand)',
     borderRadius: '8px',
     fontSize: '14px',
+    backgroundColor: 'var(--color-surface)',
+    color: 'var(--color-ink)',
   },
   editBtn: {
     padding: '8px 18px',
-    backgroundColor: '#e8f5ee',
+    backgroundColor: 'var(--color-primary-light)',
     color: GREEN,
-    border: '1px solid #b8dfc9',
+    border: '1px solid var(--color-success-soft)',
     borderRadius: '8px',
     fontSize: '13px',
     fontWeight: 600,
@@ -2164,7 +2979,7 @@ const styles = {
   saveBtn: {
     padding: '8px 18px',
     backgroundColor: GREEN,
-    color: 'white',
+    color: 'var(--color-text-on-brand)',
     border: 'none',
     borderRadius: '8px',
     fontSize: '13px',
@@ -2173,9 +2988,9 @@ const styles = {
   },
   cancelBtn: {
     padding: '8px 18px',
-    backgroundColor: '#f4f6f8',
-    color: '#555',
-    border: '1px solid #ddd',
+    backgroundColor: 'var(--color-bg-alt)',
+    color: 'var(--color-ink-soft)',
+    border: '1px solid var(--color-border-soft)',
     borderRadius: '8px',
     fontSize: '13px',
     cursor: 'pointer',
@@ -2185,7 +3000,7 @@ const styles = {
     alignItems: 'flex-start',
     gap: '16px',
     padding: '16px 0',
-    borderBottom: '1px solid #f0f0f0',
+    borderBottom: '1px solid var(--color-border-soft)',
     flexWrap: 'wrap',
   },
   tenantInfo: {
@@ -2196,16 +3011,16 @@ const styles = {
     fontSize: '15px',
     fontWeight: 600,
     margin: '0 0 4px',
-    color: '#1a1a1a',
+    color: 'var(--color-ink)',
   },
   tenantDetails: {
     fontSize: '13px',
-    color: '#888',
+    color: 'var(--color-muted)',
     margin: '0 0 4px',
   },
   tenantPenalty: {
     fontSize: '12px',
-    color: '#f57c00',
+    color: 'var(--color-warning)',
     margin: 0,
   },
   tenantActions: {
@@ -2216,13 +3031,63 @@ const styles = {
   },
   vacateBtn: {
     padding: '8px 18px',
-    backgroundColor: '#fdecea',
-    color: '#c0392b',
-    border: '1px solid #f5c6cb',
+    backgroundColor: 'var(--color-danger-light)',
+    color: 'var(--color-danger-strong)',
+    border: '1px solid var(--color-danger-soft)',
     borderRadius: '8px',
     fontSize: '13px',
     fontWeight: 600,
     cursor: 'pointer',
+  },
+  vacatePanel: {
+    backgroundColor: 'var(--color-surface-alt)',
+    border: '1.5px dashed var(--color-border-soft)',
+    borderRadius: '12px',
+    padding: '20px',
+    margin: '4px 0 16px',
+  },
+  vacateSummaryRow: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '20px',
+    marginTop: '12px',
+    marginBottom: '12px',
+  },
+  vacateSummaryValue: {
+    fontSize: '16px',
+    fontWeight: 700,
+    color: 'var(--color-ink)',
+    margin: '4px 0 0',
+  },
+  vacateNote: {
+    fontSize: '12px',
+    color: 'var(--color-muted)',
+    margin: '0 0 12px',
+    lineHeight: 1.5,
+  },
+  deductionRow: {
+    display: 'flex',
+    gap: '8px',
+    alignItems: 'center',
+    marginTop: '8px',
+    flexWrap: 'wrap',
+  },
+  photoRow: {
+    display: 'flex',
+    gap: '12px',
+    flexWrap: 'wrap',
+    marginTop: '8px',
+  },
+  photoInput: {
+    fontSize: '12px',
+    maxWidth: '200px',
+  },
+  evidenceThumb: {
+    width: '90px',
+    height: '90px',
+    objectFit: 'cover',
+    borderRadius: '8px',
+    border: '1px solid var(--color-border-soft)',
   },
   sectionHeader: {
     display: 'flex',
@@ -2231,7 +3096,7 @@ const styles = {
     marginBottom: '20px',
   },
   placeholderText: {
-    color: '#888',
+    color: 'var(--color-muted)',
     fontSize: '15px',
     textAlign: 'center',
     padding: '48px 0',
@@ -2249,7 +3114,7 @@ const styles = {
   },
   filterLabel: {
     fontSize: '12px',
-    color: '#888',
+    color: 'var(--color-muted)',
     margin: 0,
     fontWeight: 500,
     textTransform: 'uppercase',
@@ -2257,17 +3122,18 @@ const styles = {
   },
   filterSelect: {
     padding: '10px 14px',
-    border: '1.5px solid #ddd',
+    border: '1.5px solid var(--color-border-soft)',
     borderRadius: '10px',
     fontSize: '14px',
-    backgroundColor: 'white',
+    backgroundColor: 'var(--color-surface)',
+    color: 'var(--color-ink)',
     cursor: 'pointer',
     minWidth: '160px',
   },
   filterCount: {
     fontSize: '14px',
     fontWeight: 600,
-    color: '#1a7a4a',
+    color: 'var(--color-brand)',
     margin: 0,
     padding: '10px 0',
   },
@@ -2276,7 +3142,7 @@ const styles = {
     alignItems: 'center',
     gap: '16px',
     padding: '16px 0',
-    borderBottom: '1px solid #f0f0f0',
+    borderBottom: '1px solid var(--color-border-soft)',
     flexWrap: 'wrap',
   },
   paymentInfo: {
@@ -2320,8 +3186,8 @@ const styles = {
   },
   addExpenseBtn: {
     padding: '10px 20px',
-    backgroundColor: '#1a7a4a',
-    color: 'white',
+    backgroundColor: 'var(--color-brand)',
+    color: 'var(--color-text-on-brand)',
     border: 'none',
     borderRadius: '10px',
     fontSize: '14px',
@@ -2333,7 +3199,7 @@ const styles = {
     alignItems: 'center',
     gap: '16px',
     padding: '16px 0',
-    borderBottom: '1px solid #f0f0f0',
+    borderBottom: '1px solid var(--color-border-soft)',
     flexWrap: 'wrap',
   },
   categoryBadge: {
@@ -2351,24 +3217,24 @@ const styles = {
     fontSize: '15px',
     fontWeight: 600,
     margin: '0 0 4px',
-    color: '#1a1a1a',
+    color: 'var(--color-ink)',
   },
   expenseDate: {
     fontSize: '13px',
-    color: '#888',
+    color: 'var(--color-muted)',
     margin: 0,
   },
   expenseAmount: {
     fontSize: '15px',
     fontWeight: 700,
-    color: '#c0392b',
+    color: 'var(--color-danger-strong)',
     margin: 0,
   },
   deleteBtn: {
     padding: '6px 14px',
-    backgroundColor: '#fdecea',
-    color: '#c0392b',
-    border: '1px solid #f5c6cb',
+    backgroundColor: 'var(--color-danger-light)',
+    color: 'var(--color-danger-strong)',
+    border: '1px solid var(--color-danger-soft)',
     borderRadius: '8px',
     fontSize: '12px',
     fontWeight: 600,
@@ -2389,19 +3255,21 @@ const styles = {
   messageTextarea: {
     width: '100%',
     padding: '14px 16px',
-    border: '1.5px solid #ddd',
+    border: '1.5px solid var(--color-border-soft)',
     borderRadius: '10px',
     fontSize: '14px',
     boxSizing: 'border-box',
     resize: 'vertical',
-    fontFamily: 'Segoe UI, Arial, sans-serif',
+    fontFamily: 'var(--font-sans)',
     lineHeight: 1.5,
+    backgroundColor: 'var(--color-surface)',
+    color: 'var(--color-ink)',
   },
   sendBtn: {
     width: '100%',
     padding: '16px',
-    backgroundColor: '#1a7a4a',
-    color: 'white',
+    backgroundColor: 'var(--color-brand)',
+    color: 'var(--color-text-on-brand)',
     border: 'none',
     borderRadius: '12px',
     fontSize: '16px',
@@ -2414,7 +3282,7 @@ const styles = {
     alignItems: 'flex-start',
     gap: '16px',
     padding: '16px 0',
-    borderBottom: '1px solid #f0f0f0',
+    borderBottom: '1px solid var(--color-border-soft)',
   },
   messageInfo: {
     flex: 1,
@@ -2428,24 +3296,24 @@ const styles = {
   messageRecipient: {
     fontSize: '14px',
     fontWeight: 700,
-    color: '#1a1a1a',
+    color: 'var(--color-ink)',
     margin: 0,
   },
   messageDate: {
     fontSize: '12px',
-    color: '#888',
+    color: 'var(--color-muted)',
     margin: 0,
   },
   messageContent: {
     fontSize: '13px',
-    color: '#555',
+    color: 'var(--color-ink-soft)',
     margin: 0,
     lineHeight: 1.5,
   },
   messageSentBadge: {
     fontSize: '12px',
     fontWeight: 700,
-    color: '#1a7a4a',
+    color: 'var(--color-brand)',
     whiteSpace: 'nowrap',
   },
   waterCardsRow: {
@@ -2457,10 +3325,10 @@ const styles = {
   waterCard: {
     flex: 1,
     minWidth: '200px',
-    backgroundColor: '#f8fafc',
+    backgroundColor: 'var(--color-surface-alt)',
     borderRadius: '14px',
     padding: '20px',
-    border: '1px solid #e8f4fd',
+    border: '1px solid var(--color-info-light)',
   },
   waterCardHeader: {
     display: 'flex',
@@ -2472,11 +3340,11 @@ const styles = {
     fontSize: '15px',
     fontWeight: 600,
     margin: '0 0 4px',
-    color: '#1a1a1a',
+    color: 'var(--color-ink)',
   },
   waterCurrentBill: {
     fontSize: '13px',
-    color: '#2980b9',
+    color: 'var(--color-info-strong)',
     margin: 0,
     fontWeight: 500,
   },
@@ -2488,15 +3356,17 @@ const styles = {
   waterInput: {
     flex: 1,
     padding: '10px 14px',
-    border: '1.5px solid #ddd',
+    border: '1.5px solid var(--color-border-soft)',
     borderRadius: '8px',
     fontSize: '14px',
     outline: 'none',
+    backgroundColor: 'var(--color-surface)',
+    color: 'var(--color-ink)',
   },
   waterSaveBtn: {
     padding: '10px 18px',
-    backgroundColor: '#1a7a4a',
-    color: 'white',
+    backgroundColor: 'var(--color-brand)',
+    color: 'var(--color-text-on-brand)',
     border: 'none',
     borderRadius: '8px',
     fontSize: '13px',
@@ -2506,8 +3376,8 @@ const styles = {
   saveMonthBtn: {
     width: '100%',
     padding: '14px',
-    backgroundColor: '#2980b9',
-    color: 'white',
+    backgroundColor: 'var(--color-info-strong)',
+    color: 'var(--color-text-on-brand)',
     border: 'none',
     borderRadius: '12px',
     fontSize: '15px',
@@ -2517,19 +3387,19 @@ const styles = {
   waterTableHeader: {
     display: 'flex',
     padding: '10px 0',
-    borderBottom: '2px solid #f0f0f0',
+    borderBottom: '2px solid var(--color-border-soft)',
     marginBottom: '4px',
   },
   waterTableRow: {
     display: 'flex',
     padding: '12px 0',
-    borderBottom: '1px solid #f0f0f0',
+    borderBottom: '1px solid var(--color-border-soft)',
     alignItems: 'center',
   },
   waterTableCell: {
     flex: 1,
     fontSize: '14px',
-    color: '#555',
+    color: 'var(--color-ink-soft)',
     margin: 0,
   },
 };
