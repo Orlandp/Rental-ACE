@@ -10,6 +10,7 @@ function PayPage() {
   const [error, setError]               = useState('');
   const [formError, setFormError]       = useState('');
   const [paying, setPaying]             = useState(false);
+  const [stkStatus, setStkStatus]       = useState('');
   const [isDesktop, setIsDesktop]       = useState(window.innerWidth >= 768);
   const [propertyList, setPropertyList] = useState(null);
   const [selectedPropertyId, setSelectedPropertyId] = useState('');
@@ -108,7 +109,52 @@ function PayPage() {
     }
   }
 
- async function handlePayment() {
+  function goToSuccessPage(receipt) {
+    window.location.href =
+      `/success?receipt=${receipt.receipt_no}` +
+      `&payment_id=${receipt.payment_id}` +
+      `&invoice_no=${encodeURIComponent(receipt.invoice_no || '')}` +
+      `&unit=${receipt.unit_number}` +
+      `&tenant=${encodeURIComponent(receipt.tenant_name)}` +
+      `&amount=${receipt.amount_paid}` +
+      `&rent=${receipt.rent_amount}` +
+      `&penalty=${receipt.penalty}` +
+      `&balance_remaining=${receipt.balance_remaining}` +
+      `&mpesa=${receipt.mpesa_code}` +
+      `&month=${encodeURIComponent(receipt.month)}` +
+      `&date=${encodeURIComponent(receipt.payment_date)}`;
+  }
+
+  async function pollStkStatus(checkoutRequestId) {
+    const maxAttempts = 30; // ~90s total, matches how long an STK prompt stays live
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+      try {
+        const res = await fetch(`${API_BASE}/api/mpesa/status/${checkoutRequestId}`);
+        const data = await res.json();
+
+        if (data.status === 'success' && data.receipt) {
+          setStkStatus('Payment confirmed!');
+          goToSuccessPage(data.receipt);
+          return;
+        }
+        if (data.status === 'failed') {
+          setFormError(data.result_desc || 'Payment was not completed. Please try again.');
+          setStkStatus('');
+          setPaying(false);
+          return;
+        }
+        setStkStatus('Waiting for you to complete the payment on your phone...');
+      } catch (err) {
+        // transient network hiccup while polling — keep trying until maxAttempts
+      }
+    }
+    setFormError('This is taking longer than expected. If you entered your PIN, check your invoices shortly — otherwise please try again.');
+    setStkStatus('');
+    setPaying(false);
+  }
+
+  async function handlePayment() {
     const cleanPhone = phone.replace(/\s/g, '');
     const kenyanPhone = /^(07|01)\d{8}$/;
     if (!kenyanPhone.test(cleanPhone)) {
@@ -122,14 +168,15 @@ function PayPage() {
     }
     setFormError('');
     setPaying(true);
+    setStkStatus('Sending the request to your phone...');
 
     try {
-      const res = await fetch(`${API_BASE}/api/payments`, {
+      const res = await fetch(`${API_BASE}/api/mpesa/stkpush`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           unit_id: unitId,
-          phone_used: cleanPhone,
+          phone: cleanPhone,
           amount: parsedAmount,
         }),
       });
@@ -137,26 +184,17 @@ function PayPage() {
 
       if (!res.ok) {
         setFormError(data.error || 'Payment failed. Please try again.');
+        setStkStatus('');
         setPaying(false);
         return;
       }
 
-      window.location.href =
-        `/success?receipt=${data.receipt.receipt_no}` +
-        `&payment_id=${data.receipt.payment_id}` +
-        `&invoice_no=${encodeURIComponent(data.receipt.invoice_no || '')}` +
-        `&unit=${data.receipt.unit_number}` +
-        `&tenant=${encodeURIComponent(data.receipt.tenant_name)}` +
-        `&amount=${data.receipt.amount_paid}` +
-        `&rent=${data.receipt.rent_amount}` +
-        `&penalty=${data.receipt.penalty}` +
-        `&balance_remaining=${data.receipt.balance_remaining}` +
-        `&mpesa=${data.receipt.mpesa_code}` +
-        `&month=${encodeURIComponent(data.receipt.month)}` +
-        `&date=${encodeURIComponent(data.receipt.payment_date)}`;
+      setStkStatus('Check your phone and enter your M-Pesa PIN to complete the payment.');
+      pollStkStatus(data.checkout_request_id);
 
     } catch (err) {
       setFormError('Could not reach the server. Is Flask running?');
+      setStkStatus('');
       setPaying(false);
     }
   }
@@ -370,6 +408,11 @@ return (
                   <p style={styles.formError}>{formError}</p>
                 )}
 
+                {/* STK push status */}
+                {paying && stkStatus !== '' && (
+                  <p style={styles.stkStatus}>📱 {stkStatus}</p>
+                )}
+
                 {/* Pay Button */}
                 <button
                   onClick={handlePayment}
@@ -378,7 +421,7 @@ return (
                   className="btn-lift"
                 >
                   {paying
-                    ? 'Processing...'
+                    ? 'Waiting for confirmation...'
                     : `Pay Ksh ${(parseFloat(amount) || 0).toLocaleString()} via M-Pesa`}
                 </button>
               </div>
@@ -599,6 +642,16 @@ const styles = {
     padding: '10px',
     backgroundColor: 'var(--color-danger-light)',
     borderRadius: 'var(--radius-sm)',
+  },
+  stkStatus: {
+    color: 'var(--color-primary-dark)',
+    fontSize: '13px',
+    margin: '0 0 16px',
+    textAlign: 'center',
+    padding: '10px',
+    backgroundColor: 'var(--color-primary-light)',
+    borderRadius: 'var(--radius-sm)',
+    fontWeight: 500,
   },
   payBtn: {
     width: '100%',

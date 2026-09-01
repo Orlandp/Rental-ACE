@@ -214,7 +214,7 @@ def mpesa_status(checkout_request_id):
 
     if txn['status'] == 'success' and txn['payment_id']:
         payment = conn.execute('''
-            SELECT p.*, u.full_name AS tenant_name, un.unit_number
+            SELECT p.*, u.full_name AS tenant_name, un.unit_number, un.rent_amount
             FROM payments p
             JOIN users u ON p.tenant_id = u.user_id
             JOIN units un ON p.unit_id = un.unit_id
@@ -234,6 +234,8 @@ def mpesa_status(checkout_request_id):
             'payment_id': payment['payment_id'],
             'unit_number': payment['unit_number'],
             'tenant_name': payment['tenant_name'],
+            'rent_amount': payment['rent_amount'],
+            'penalty': 0,
             'amount_paid': payment['amount'],
             'mpesa_code': payment['mpesa_code'],
             'payment_date': payment['payment_date'],
