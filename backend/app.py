@@ -1,4 +1,7 @@
 import os
+from dotenv import load_dotenv
+load_dotenv()
+
 from flask import Flask, send_from_directory, jsonify, session
 from flask_cors import CORS
 from routes.auth import auth_bp
@@ -13,6 +16,7 @@ from routes.reports import reports_bp
 from routes.invoices import invoices_bp
 from routes.agreement import agreement_bp
 from routes.agents import agents_bp
+from routes.mpesa import mpesa_bp
 from routes.decorators import login_required
 from database import get_db
 
@@ -82,6 +86,7 @@ app.register_blueprint(reports_bp)
 app.register_blueprint(invoices_bp)
 app.register_blueprint(agreement_bp)
 app.register_blueprint(agents_bp)
+app.register_blueprint(mpesa_bp)
 
 
 @app.route('/api/health')

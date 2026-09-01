@@ -125,8 +125,77 @@ def allocate_payment_to_invoices(conn, tenant, unit, payment_id, amount, payment
     return allocations
 
 
+def record_payment(conn, unit, tenant, amount, phone_used, mpesa_code, payment_date=None, created_at=None):
+    """Insert a completed payment, notify the tenant, and allocate it across
+    outstanding/future invoices. Shared by the simulated pay flow, the manual
+    admin/agent flow, and the real M-Pesa STK push callback so all three
+    produce identical invoice/receipt behavior."""
+    from datetime import datetime
+    from routes.invoices import refresh_invoice_penalty
+
+    now = datetime.now()
+    payment_date = payment_date or now.strftime('%Y-%m-%d')
+    created_at = created_at or now.strftime('%Y-%m-%d %H:%M:%S')
+
+    invoice = conn.execute('''
+        SELECT * FROM invoices
+        WHERE unit_id = ? AND status IN ('unpaid', 'partial')
+        ORDER BY due_date ASC, invoice_id ASC LIMIT 1
+    ''', (unit['unit_id'],)).fetchone()
+
+    penalty = refresh_invoice_penalty(conn, invoice, now)[0] if invoice else 0
+    payment_month = invoice['month'] if invoice else now.strftime('%B %Y')
+
+    cursor = conn.execute('''
+        INSERT INTO payments
+        (tenant_id, unit_id, amount, mpesa_code, phone_used, payment_date, month, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, 'paid')
+    ''', (tenant['user_id'], unit['unit_id'], amount, mpesa_code, phone_used, payment_date, payment_month))
+
+    payment_id = cursor.lastrowid
+
+    conn.execute('''
+        INSERT INTO messages (recipient, content, sent_at, status)
+        VALUES (?, ?, ?, 'sent')
+    ''', (
+        tenant['phone'],
+        (f"Dear {tenant['full_name']}, we have received your rent payment of Ksh {amount:,.0f} for House {unit['unit_number']}. Thank you!"
+         if invoice else
+         f"Dear {tenant['full_name']}, we have received your advance rent payment of Ksh {amount:,.0f} for House {unit['unit_number']}, applied towards your upcoming rent. Thank you!"),
+        created_at,
+    ))
+
+    allocations = allocate_payment_to_invoices(conn, tenant, unit, payment_id, amount, payment_date, created_at)
+    primary = allocations[0] if allocations else None
+
+    balance_remaining = 0
+    if primary:
+        settled_invoice = conn.execute(
+            'SELECT total_amount, amount_paid FROM invoices WHERE invoice_id = ?', (primary['invoice_id'],)
+        ).fetchone()
+        balance_remaining = max(settled_invoice['total_amount'] - settled_invoice['amount_paid'], 0)
+
+    return {
+        'receipt_no': f'RCT-{payment_id:05d}',
+        'payment_id': payment_id,
+        'unit_number': unit['unit_number'],
+        'tenant_name': tenant['full_name'],
+        'rent_amount': unit['rent_amount'],
+        'penalty': penalty,
+        'amount_paid': amount,
+        'balance_remaining': balance_remaining,
+        'mpesa_code': mpesa_code,
+        'payment_date': payment_date,
+        'month': primary['month'] if primary else payment_month,
+        'invoice_no': primary['invoice_no'] if primary else None,
+    }
+
+
 @payments_bp.route('/api/payments', methods=['POST'])
 def create_payment():
+    """Simulated pay flow (no real M-Pesa call) — kept for local dev/testing
+    without Safaricom credentials configured. The real flow is
+    POST /api/mpesa/stkpush, which calls record_payment() from its callback."""
     data = request.get_json(silent=True) or {}
 
     unit_id = data.get('unit_id')
@@ -160,20 +229,18 @@ def create_payment():
     from datetime import datetime
     from routes.invoices import refresh_invoice_penalty
     now = datetime.now()
-    payment_date = now.strftime('%Y-%m-%d')
-    created_at = now.strftime('%Y-%m-%d %H:%M:%S')
 
     requested_amount = data.get('amount')
 
     if invoice:
-        penalty, total_amount = refresh_invoice_penalty(conn, invoice, now)
+        _, total_amount = refresh_invoice_penalty(conn, invoice, now)
         balance_due = total_amount - invoice['amount_paid']
     else:
         # nothing currently outstanding — this is a tenant paying ahead for a
         # future month. There's nothing to default the amount to, so it must
         # be given explicitly; allocate_payment_to_invoices below will create
         # and apply it against the next invoice in line.
-        penalty, balance_due = 0, None
+        balance_due = None
 
     if requested_amount is not None:
         try:
@@ -193,55 +260,10 @@ def create_payment():
     import random
     mpesa_code = 'SIM' + ''.join(random.choices('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', k=8))
 
-    payment_month = invoice['month'] if invoice else now.strftime('%B %Y')
-
-    cursor = conn.execute('''
-        INSERT INTO payments
-        (tenant_id, unit_id, amount, mpesa_code, phone_used, payment_date, month, status)
-        VALUES (?, ?, ?, ?, ?, ?, ?, 'paid')
-    ''', (tenant['user_id'], unit_id, amount, mpesa_code, phone_used, payment_date, payment_month))
-
-    payment_id = cursor.lastrowid
-
-    conn.execute('''
-        INSERT INTO messages (recipient, content, sent_at, status)
-        VALUES (?, ?, ?, 'sent')
-    ''', (
-        tenant['phone'],
-        (f"Dear {tenant['full_name']}, we have received your rent payment of Ksh {amount:,.0f} for House {unit['unit_number']}. Thank you!"
-         if invoice else
-         f"Dear {tenant['full_name']}, we have received your advance rent payment of Ksh {amount:,.0f} for House {unit['unit_number']}, applied towards your upcoming rent. Thank you!"),
-        created_at,
-    ))
-
-    allocations = allocate_payment_to_invoices(conn, tenant, unit, payment_id, amount, payment_date, created_at)
-
-    primary = allocations[0] if allocations else None
-
-    balance_remaining = 0
-    if primary:
-        settled_invoice = conn.execute(
-            'SELECT total_amount, amount_paid FROM invoices WHERE invoice_id = ?', (primary['invoice_id'],)
-        ).fetchone()
-        balance_remaining = max(settled_invoice['total_amount'] - settled_invoice['amount_paid'], 0)
+    receipt = record_payment(conn, unit, tenant, amount, phone_used, mpesa_code)
 
     conn.commit()
     conn.close()
-
-    receipt = {
-        'receipt_no': f'RCT-{payment_id:05d}',
-        'payment_id': payment_id,
-        'unit_number': unit['unit_number'],
-        'tenant_name': tenant['full_name'],
-        'rent_amount': unit['rent_amount'],
-        'penalty': penalty,
-        'amount_paid': amount,
-        'balance_remaining': balance_remaining,
-        'mpesa_code': mpesa_code,
-        'payment_date': payment_date,
-        'month': primary['month'] if primary else payment_month,
-        'invoice_no': primary['invoice_no'] if primary else None,
-    }
 
     return jsonify({
         'message': 'Payment recorded successfully',

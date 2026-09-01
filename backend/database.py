@@ -27,6 +27,7 @@ TABLE_PRIMARY_KEYS = {
     'payment_allocations': 'allocation_id',
     'deposit_deductions': 'deduction_id',
     'vacate_evidence_photos': 'photo_id',
+    'mpesa_transactions': 'transaction_id',
 }
 
 _INSERT_TABLE_RE = re.compile(r'^\s*INSERT\s+INTO\s+(\w+)', re.IGNORECASE)
@@ -372,6 +373,27 @@ def run_migrations(conn):
             file_path TEXT NOT NULL,
             created_at TEXT NOT NULL,
             FOREIGN KEY(tenant_id) REFERENCES users(user_id)
+        )
+    ''')
+
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS mpesa_transactions (
+            transaction_id SERIAL PRIMARY KEY,
+            checkout_request_id TEXT NOT NULL UNIQUE,
+            merchant_request_id TEXT,
+            unit_id INTEGER NOT NULL,
+            tenant_id INTEGER NOT NULL,
+            amount REAL NOT NULL,
+            phone TEXT NOT NULL,
+            status TEXT DEFAULT 'pending',
+            mpesa_receipt TEXT,
+            result_desc TEXT,
+            payment_id INTEGER,
+            created_at TEXT NOT NULL,
+            completed_at TEXT,
+            FOREIGN KEY(unit_id) REFERENCES units(unit_id),
+            FOREIGN KEY(tenant_id) REFERENCES users(user_id),
+            FOREIGN KEY(payment_id) REFERENCES payments(payment_id)
         )
     ''')
 
