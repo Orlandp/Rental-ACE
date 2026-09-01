@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.env
+.env.local
+cookies.txt
+tenant_cookies.txt
+rental.db
+uploads/
+test2.pdf
+test-report.pdf
+test-report.xlsx
